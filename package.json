@@ -1,10 +1,10 @@
 {
   "name": "fog-drive",
-  "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "version": "0.1.0",
+  "description": "A cloud storage management software",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "FogDrive",
+  "homepage": "https://github.com/fog-drive",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
@@ -23,6 +23,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
+    "antd": "^5.22.3",
     "electron-updater": "^6.1.7"
   },
   "devDependencies": {

@@ -1,34 +1,71 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import React, { useState } from 'react'
+import {
+  DesktopOutlined,
+  FileOutlined,
+  PieChartOutlined,
+  TeamOutlined,
+  UserOutlined
+} from '@ant-design/icons'
+import type { MenuProps } from 'antd'
+import { Layout, Menu, theme } from 'antd'
 
-function App(): JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+const { Content, Sider } = Layout
+
+type MenuItem = Required<MenuProps>['items'][number]
+
+function getItem(
+  label: React.ReactNode,
+  key: React.Key,
+  icon?: React.ReactNode,
+  children?: MenuItem[]
+): MenuItem {
+  return {
+    key,
+    icon,
+    children,
+    label
+  } as MenuItem
+}
+
+const items: MenuItem[] = [
+  getItem('Option 1', '1', <PieChartOutlined />),
+  getItem('Option 2', '2', <DesktopOutlined />),
+  getItem('User', 'sub1', <UserOutlined />, [
+    getItem('Tom', '3'),
+    getItem('Bill', '4'),
+    getItem('Alex', '5')
+  ]),
+  getItem('Team', 'sub2', <TeamOutlined />, [getItem('Team 1', '6'), getItem('Team 2', '8')]),
+  getItem('Files', '9', <FileOutlined />)
+]
+
+const App: React.FC = () => {
+  const [collapsed, setCollapsed] = useState(false)
+  const {
+    token: { colorBgContainer, borderRadiusLG }
+  } = theme.useToken()
 
   return (
-    <>
-      <img alt="logo" className="logo" src={electronLogo} />
-      <div className="creator">Powered by electron-vite</div>
-      <div className="text">
-        Build an Electron app with <span className="react">React</span>
-        &nbsp;and <span className="ts">TypeScript</span>
-      </div>
-      <p className="tip">
-        Please try pressing <code>F12</code> to open the devTool
-      </p>
-      <div className="actions">
-        <div className="action">
-          <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">
-            Documentation
-          </a>
-        </div>
-        <div className="action">
-          <a target="_blank" rel="noreferrer" onClick={ipcHandle}>
-            Send IPC
-          </a>
-        </div>
-      </div>
-      <Versions></Versions>
-    </>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
+        <div className="demo-logo-vertical" />
+        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
+      </Sider>
+      <Layout>
+        <Content style={{ margin: '16' }}>
+          <div
+            style={{
+              padding: 24,
+              minHeight: '100%',
+              background: colorBgContainer,
+              borderRadius: borderRadiusLG
+            }}
+          >
+            Bill is a cat.
+          </div>
+        </Content>
+      </Layout>
+    </Layout>
   )
 }
 
