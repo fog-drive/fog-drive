@@ -10,7 +10,7 @@ import {
 import type { MenuProps } from 'antd'
 import { Layout, Menu, theme } from 'antd'
 
-import Storage from './components/setting/Storage'
+import Storage from '@/components/setting/Storage'
 
 const { Content, Sider } = Layout
 
@@ -80,8 +80,8 @@ const App: React.FC = () => {
         <Content style={{ margin: '16' }}>
           <div
             style={{
-              padding: 24,
-              minHeight: '100%',
+              minHeight: '100vh',
+              padding: 16,
               background: colorBgContainer,
               borderRadius: borderRadiusLG
             }}

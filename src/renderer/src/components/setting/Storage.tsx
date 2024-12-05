@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { AppstoreAddOutlined } from '@ant-design/icons'
+import { Button, Space, Table, Modal, Form, Input } from 'antd'
+import { StorageSetting } from '@shared/models'
 import type { FormProps } from 'antd'
-import { Button, Form, Input } from 'antd'
+import type { TableProps } from 'antd'
 
 type FieldType = {
   name?: string
@@ -10,71 +13,174 @@ type FieldType = {
   bucket?: string
 }
 
-const onFinish: FormProps<FieldType>['onFinish'] = (values) => {
-  console.log('Success:', values)
+type ColumnsType<T extends object> = TableProps<T>['columns']
+
+interface DataType {
+  name: string
+  type: string
+  quota: number
+  quotaUnit: string
 }
 
-const onFinishFailed: FormProps<FieldType>['onFinishFailed'] = (errorInfo) => {
-  console.log('Failed:', errorInfo)
-}
+const columns: ColumnsType<DataType> = [
+  {
+    title: '名称',
+    dataIndex: 'name',
+    key: 'name'
+  },
+  {
+    title: '类型',
+    dataIndex: 'type',
+    key: 'type'
+  },
+  {
+    title: '配额',
+    dataIndex: 'quota',
+    key: 'quota',
+    render: (_, record): JSX.Element => {
+      return (
+        <>
+          {record.quota} {record.quotaUnit}
+        </>
+      )
+    }
+  },
+  {
+    title: '操作',
+    key: 'action',
+    render: (_, record) => (
+      <Space size="middle">
+        <a>编辑 {record.name}</a>
+        <a>删除</a>
+      </Space>
+    )
+  }
+]
 
-const Storage: React.FC = () => (
-  <Form
-    name="basic"
-    labelCol={{ span: 8 }}
-    wrapperCol={{ span: 16 }}
-    style={{ maxWidth: 600 }}
-    initialValues={{ remember: true }}
-    onFinish={onFinish}
-    onFinishFailed={onFinishFailed}
-    autoComplete="off"
-  >
-    <Form.Item<FieldType>
-      label="名称"
-      name="name"
-      rules={[{ required: true, message: '请输入名称!' }]}
-    >
-      <Input />
-    </Form.Item>
+const data: DataType[] = [
+  {
+    name: '青云',
+    type: 's3',
+    quota: 1000,
+    quotaUnit: 'Mb'
+  },
+  {
+    name: '七牛',
+    type: 's3',
+    quota: 1000,
+    quotaUnit: 'Mb'
+  }
+]
 
-    <Form.Item<FieldType>
-      label="Access Key"
-      name="accessKey"
-      rules={[{ required: true, message: '请输入Access Key!' }]}
-    >
-      <Input.Password />
-    </Form.Item>
+const AddButton: React.FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-    <Form.Item<FieldType>
-      label="Secret Key"
-      name="secretKey"
-      rules={[{ required: true, message: '请输入Secret Key!' }]}
-    >
-      <Input.Password />
-    </Form.Item>
+  const onFinish: FormProps<FieldType>['onFinish'] = (values) => {
+    setIsModalOpen(false)
+    const storageSetting = values as StorageSetting
+    storageSetting.storage = 's3'
+    console.log('Success:', storageSetting)
+  }
 
-    <Form.Item<FieldType>
-      label="Endpoint"
-      name="endpoint"
-      rules={[{ required: true, message: '请输入Endpoint!' }]}
-    >
-      <Input />
-    </Form.Item>
+  const onFinishFailed: FormProps<FieldType>['onFinishFailed'] = (errorInfo) => {
+    console.log('Failed:', errorInfo)
+  }
+  const showEditStorage = (id: number | null): void => {
+    setIsModalOpen(true)
+    if (null === id) {
+      console.log('')
+    } else {
+      console.log(id)
+    }
+  }
 
-    <Form.Item<FieldType>
-      label="Bucket"
-      name="bucket"
-      rules={[{ required: true, message: '请输入Bucket!' }]}
-    >
-      <Input />
-    </Form.Item>
+  const handleOk = (): void => {
+    setIsModalOpen(false)
+  }
 
-    <Form.Item label={null}>
-      <Button type="primary" htmlType="submit">
-        Submit
+  const handleCancel = (): void => {
+    setIsModalOpen(false)
+  }
+
+  return (
+    <div style={{ padding: '16px 0px' }}>
+      <Button type="primary" onClick={() => showEditStorage(null)} icon={<AppstoreAddOutlined />}>
+        添加
       </Button>
-    </Form.Item>
-  </Form>
-)
+      <Modal title="存储" open={isModalOpen} onOk={handleOk} onCancel={handleCancel} footer={[]}>
+        <Form
+          name="basic"
+          labelCol={{ span: 8 }}
+          wrapperCol={{ span: 16 }}
+          style={{ maxWidth: 600 }}
+          initialValues={{ remember: true }}
+          onFinish={onFinish}
+          onFinishFailed={onFinishFailed}
+          autoComplete="off"
+        >
+          <Form.Item<FieldType>
+            label="名称"
+            name="name"
+            rules={[{ required: true, message: '请输入名称!' }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item<FieldType>
+            label="Access Key"
+            name="accessKey"
+            rules={[{ required: true, message: '请输入Access Key!' }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item<FieldType>
+            label="Secret Key"
+            name="secretKey"
+            rules={[{ required: true, message: '请输入Secret Key!' }]}
+          >
+            <Input.Password />
+          </Form.Item>
+
+          <Form.Item<FieldType>
+            label="Endpoint"
+            name="endpoint"
+            rules={[{ required: true, message: '请输入Endpoint!' }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item<FieldType>
+            label="Bucket"
+            name="bucket"
+            rules={[{ required: true, message: '请输入Bucket!' }]}
+          >
+            <Input />
+          </Form.Item>
+
+          <Form.Item label={null}>
+            <Button type="primary" htmlType="submit">
+              Submit
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  )
+}
+
+const Storage: React.FC = () => {
+  return (
+    <div>
+      <AddButton />
+      <Table<DataType>
+        columns={columns}
+        pagination={{ position: ['bottomRight'] }}
+        dataSource={data}
+        style={{ width: '100vh' }}
+      />
+    </div>
+  )
+}
 
 export default Storage
