@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { AppstoreAddOutlined } from '@ant-design/icons'
-import { Button, Space, Table, Modal, Form, Input } from 'antd'
-import { StorageSetting } from '@shared/models'
+import { Button, Space, Table, Modal, Form, Input, message } from 'antd'
+import { StorageModel } from '@shared/models'
 import type { FormProps } from 'antd'
 import type { TableProps } from 'antd'
 
@@ -76,22 +76,18 @@ const AddButton: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const onFinish: FormProps<FieldType>['onFinish'] = (values) => {
+    const storage = values as StorageModel
+    storage.type = 's3'
+    window.context.addStorage(storage)
     setIsModalOpen(false)
-    const storageSetting = values as StorageSetting
-    storageSetting.storage = 's3'
-    console.log('Success:', storageSetting)
+    message.success(JSON.stringify(storage))
   }
 
   const onFinishFailed: FormProps<FieldType>['onFinishFailed'] = (errorInfo) => {
     console.log('Failed:', errorInfo)
   }
-  const showEditStorage = (id: number | null): void => {
+  const addStorage = (): void => {
     setIsModalOpen(true)
-    if (null === id) {
-      console.log('')
-    } else {
-      console.log(id)
-    }
   }
 
   const handleOk = (): void => {
@@ -104,7 +100,7 @@ const AddButton: React.FC = () => {
 
   return (
     <div style={{ padding: '16px 0px' }}>
-      <Button type="primary" onClick={() => showEditStorage(null)} icon={<AppstoreAddOutlined />}>
+      <Button type="primary" onClick={addStorage} icon={<AppstoreAddOutlined />}>
         添加
       </Button>
       <Modal title="存储" open={isModalOpen} onOk={handleOk} onCancel={handleCancel} footer={[]}>

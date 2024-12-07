@@ -1,6 +1,6 @@
-export type StorageSetting = {
+export type StorageModel = {
   name: string
-  storage: string
+  type: string
   accessKey: string
   secretKey: string
   endpoint: string

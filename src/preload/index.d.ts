@@ -1,8 +1,7 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
+import { AddStorage } from '@shared/types'
 
 declare global {
   interface Window {
-    electron: ElectronAPI
-    api: unknown
+    addStorage: AddStorage
   }
 }

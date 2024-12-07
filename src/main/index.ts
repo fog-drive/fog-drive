@@ -1,7 +1,11 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { CAddStore } from '@shared/channels'
+import { AddStorage } from '@shared/types'
+import { addStorage } from './lib'
+import { initDB } from './lib/db'
 
 function createWindow(): void {
   // Create the browser window.
@@ -48,6 +52,10 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+  initDB()
+  ipcMain.handle(CAddStore, (_, ...args: Parameters<AddStorage>) => {
+    addStorage(args)
   })
 
   createWindow()
