@@ -6,6 +6,7 @@ import type { FormProps } from 'antd'
 import type { TableProps } from 'antd'
 
 type FieldType = {
+  id?: number
   name?: string
   accessKey?: string
   secretKey?: string
@@ -16,63 +17,79 @@ type FieldType = {
 type ColumnsType<T extends object> = TableProps<T>['columns']
 
 interface DataType {
+  id: number
   name: string
   type: string
   quota: number
   quotaUnit: string
 }
 
-const columns: ColumnsType<DataType> = [
-  {
-    title: '名称',
-    dataIndex: 'name',
-    key: 'name'
-  },
-  {
-    title: '类型',
-    dataIndex: 'type',
-    key: 'type'
-  },
-  {
-    title: '配额',
-    dataIndex: 'quota',
-    key: 'quota',
-    render: (_, record): JSX.Element => {
-      return (
-        <>
-          {record.quota} {record.quotaUnit}
-        </>
+const updateStorage = (record: DataType): void => {
+  const model = { id: record.id, name: record.name, type: record.type } as StorageModel
+  window.context.saveStorage(model)
+}
+
+const deleteStorage = (id: number): void => {
+  console.log(id)
+}
+
+const Storage: React.FC = () => {
+  const [form] = Form.useForm()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const showModal = (storage: DataType | null): void => {
+    if (null != storage) {
+      form.setFieldsValue({ id: storage.id, name: storage.name })
+    }
+    setIsModalOpen(true)
+  }
+
+  const columns: ColumnsType<DataType> = [
+    {
+      title: '名称',
+      dataIndex: 'name',
+      key: 'name'
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      key: 'type'
+    },
+    {
+      title: '配额',
+      dataIndex: 'quota',
+      key: 'quota',
+      render: (_, record): JSX.Element => {
+        return (
+          <>
+            {record.quota} {record.quotaUnit}
+          </>
+        )
+      }
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_, record) => (
+        <Space size="middle">
+          <a onClick={() => showModal(record)}>编辑</a>
+          <a onClick={() => deleteStorage(record.id)}>删除</a>
+        </Space>
       )
     }
-  },
-  {
-    title: '操作',
-    key: 'action',
-    render: (_, record) => (
-      <Space size="middle">
-        <a>编辑 {record.name}</a>
-        <a>删除</a>
-      </Space>
-    )
-  }
-]
+  ]
 
-const AddButton: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const onFinish: FormProps<FieldType>['onFinish'] = (values) => {
-    const storage = values as StorageModel
+  const onFinish: FormProps<FieldType>['onFinish'] = (record) => {
+    const storage = record as StorageModel
     console.log(storage)
     storage.type = 's3'
-    window.context.addStorage(storage)
+    window.context.saveStorage(storage)
     setIsModalOpen(false)
     message.success(JSON.stringify(storage))
   }
 
   const onFinishFailed: FormProps<FieldType>['onFinishFailed'] = (errorInfo) => {
     console.log('Failed:', errorInfo)
-  }
-  const addStorage = (): void => {
-    setIsModalOpen(true)
   }
 
   const handleOk = (): void => {
@@ -83,14 +100,39 @@ const AddButton: React.FC = () => {
     setIsModalOpen(false)
   }
 
+  const [data, setData] = useState<DataType[]>([])
+  useEffect(() => {
+    const fetchData = async (): Promise<void> => {
+      const models = await window.context.getStorage()
+      setData(
+        models.map((model) => ({
+          id: model.id,
+          name: model.name,
+          type: model.type,
+          quota: 1000,
+          quotaUnit: 'Mb'
+        })) as DataType[]
+      )
+    }
+    fetchData()
+  }, [])
   return (
-    <div style={{ padding: '16px 0px' }}>
-      <Button type="primary" onClick={addStorage} icon={<AppstoreAddOutlined />}>
-        添加
-      </Button>
+    <div>
+      <div style={{ padding: '16px 0px' }}>
+        <Button type="primary" onClick={() => showModal(null)} icon={<AppstoreAddOutlined />}>
+          添加
+        </Button>
+      </div>
+      <Table<DataType>
+        columns={columns}
+        // pagination={{ position: ['bottomRight'] }}
+        dataSource={data}
+        style={{ width: '100vh' }}
+      />
       <Modal title="存储" open={isModalOpen} onOk={handleOk} onCancel={handleCancel} footer={[]}>
         <Form
           name="basic"
+          form={form}
           labelCol={{ span: 8 }}
           wrapperCol={{ span: 16 }}
           style={{ maxWidth: 600 }}
@@ -99,6 +141,10 @@ const AddButton: React.FC = () => {
           onFinishFailed={onFinishFailed}
           autoComplete="off"
         >
+          <Form.Item<FieldType> label="Id" name="id">
+            <Input disabled={true} />
+          </Form.Item>
+
           <Form.Item<FieldType>
             label="名称"
             name="name"
@@ -146,35 +192,6 @@ const AddButton: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
-  )
-}
-
-const Storage: React.FC = () => {
-  const [data, setData] = useState<DataType[]>([])
-  useEffect(() => {
-    const fetchData = async (): Promise<void> => {
-      const models = await window.context.getStorage()
-      setData(
-        models.map((model) => ({
-          name: model.name,
-          type: model.type,
-          quota: 1000,
-          quotaUnit: 'Mb'
-        })) as DataType[]
-      )
-    }
-    fetchData()
-  }, [])
-  return (
-    <div>
-      <AddButton />
-      <Table<DataType>
-        columns={columns}
-        pagination={{ position: ['bottomRight'] }}
-        dataSource={data}
-        style={{ width: '100vh' }}
-      />
     </div>
   )
 }

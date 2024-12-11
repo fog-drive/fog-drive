@@ -1,2 +1,2 @@
-export const CAddStorage = 'addStorage'
+export const CSaveStorage = 'saveStorage'
 export const CGetStorage = 'getStorage'

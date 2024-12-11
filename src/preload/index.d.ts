@@ -1,9 +1,9 @@
-import { AddStorage, GetStorage } from '@shared/types'
+import { SaveStorage, GetStorage } from '@shared/types'
 
 declare global {
   interface Window {
     context: {
-      addStorage: AddStorage
+      saveStorage: SaveStorage
       getStorage: GetStorage
     }
   }
