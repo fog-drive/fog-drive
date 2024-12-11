@@ -1,24 +1,10 @@
 import { DataSource } from 'typeorm'
-import * as fs from 'fs'
-import path from 'path'
-import initSql from '../../../resources/sql/init.sql?asset'
+import { StorageEntity } from './entities'
 
-const AppDataSource = new DataSource({
+export const dataSource = new DataSource({
   type: 'sqlite',
   database: '../fd.db',
   logging: true,
   synchronize: true,
+  entities: [StorageEntity]
 })
-
-export const initDB = (): void => {
-  AppDataSource.initialize().then(async (ds) => {
-    const sqlFilePath = path.resolve(__dirname, initSql)
-    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8')
-    const sqlStatements = sqlContent.split(';')
-    for (const statement of sqlStatements) {
-      if (statement.trim() !== '' && !statement.trim().startsWith('--')) {
-        await ds.query(statement.trim())
-      }
-    }
-  })
-}

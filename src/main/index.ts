@@ -2,10 +2,11 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { CAddStore } from '@shared/channels'
-import { AddStorage } from '@shared/types'
-import { addStorage } from './lib'
-import { initDB } from './lib/db'
+import { AddStorage, GetStorage } from '@shared/types'
+import { addStorage, getStorage } from '@/lib'
+import { dataSource } from './lib/db'
+import { CAddStorage, CGetStorage } from '@shared/channels'
+
 
 function createWindow(): void {
   // Create the browser window.
@@ -43,7 +44,7 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -53,10 +54,11 @@ app.whenReady().then(() => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
-  initDB()
-  ipcMain.handle(CAddStore, (_, ...args: Parameters<AddStorage>) => {
-    addStorage(args)
-  })
+
+  await dataSource.initialize()
+
+  ipcMain.handle(CAddStorage, (_, ...args: Parameters<AddStorage>) => addStorage(...args))
+  ipcMain.handle(CGetStorage, (_, ...args: Parameters<GetStorage>) => getStorage(...args))
 
   createWindow()
 

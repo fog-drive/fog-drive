@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AppstoreAddOutlined } from '@ant-design/icons'
 import { Button, Space, Table, Modal, Form, Input, message } from 'antd'
 import { StorageModel } from '@shared/models'
@@ -57,26 +57,11 @@ const columns: ColumnsType<DataType> = [
   }
 ]
 
-const data: DataType[] = [
-  {
-    name: '青云',
-    type: 's3',
-    quota: 1000,
-    quotaUnit: 'Mb'
-  },
-  {
-    name: '七牛',
-    type: 's3',
-    quota: 1000,
-    quotaUnit: 'Mb'
-  }
-]
-
 const AddButton: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
-
   const onFinish: FormProps<FieldType>['onFinish'] = (values) => {
     const storage = values as StorageModel
+    console.log(storage)
     storage.type = 's3'
     window.context.addStorage(storage)
     setIsModalOpen(false)
@@ -166,6 +151,21 @@ const AddButton: React.FC = () => {
 }
 
 const Storage: React.FC = () => {
+  const [data, setData] = useState<DataType[]>([])
+  useEffect(() => {
+    const fetchData = async (): Promise<void> => {
+      const models = await window.context.getStorage()
+      setData(
+        models.map((model) => ({
+          name: model.name,
+          type: model.type,
+          quota: 1000,
+          quotaUnit: 'Mb'
+        })) as DataType[]
+      )
+    }
+    fetchData()
+  }, [])
   return (
     <div>
       <AddButton />

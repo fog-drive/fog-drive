@@ -1,7 +1,10 @@
-import { AddStorage } from '@shared/types'
+import { AddStorage, GetStorage } from '@shared/types'
 
 declare global {
   interface Window {
-    addStorage: AddStorage
+    context: {
+      addStorage: AddStorage
+      getStorage: GetStorage
+    }
   }
 }

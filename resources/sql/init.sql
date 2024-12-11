@@ -1,7 +1,0 @@
-CREATE TABLE IF NOT EXISTS fd_setting (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key TEXT NOT NULL,
-  value TEXT NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_fd_setting_key ON fd_setting(key);

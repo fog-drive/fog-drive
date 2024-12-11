@@ -1,4 +1,5 @@
 export type StorageModel = {
+  id: number
   name: string
   type: string
   accessKey: string
