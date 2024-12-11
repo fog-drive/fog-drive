@@ -24,11 +24,6 @@ interface DataType {
   quotaUnit: string
 }
 
-const updateStorage = (record: DataType): void => {
-  const model = { id: record.id, name: record.name, type: record.type } as StorageModel
-  window.context.saveStorage(model)
-}
-
 const deleteStorage = (id: number): void => {
   console.log(id)
 }
@@ -37,9 +32,15 @@ const Storage: React.FC = () => {
   const [form] = Form.useForm()
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  // for ID input
+  const [isIdHidden, setIsIdHidden] = useState(false)
+
   const showModal = (storage: DataType | null): void => {
     if (null != storage) {
       form.setFieldsValue({ id: storage.id, name: storage.name })
+      setIsIdHidden(false)
+    } else {
+      setIsIdHidden(true)
     }
     setIsModalOpen(true)
   }
@@ -141,9 +142,11 @@ const Storage: React.FC = () => {
           onFinishFailed={onFinishFailed}
           autoComplete="off"
         >
-          <Form.Item<FieldType> label="Id" name="id">
-            <Input disabled={true} />
-          </Form.Item>
+          {!isIdHidden && (
+            <Form.Item<FieldType> label="Id" name="id" rules={[{ required: false }]}>
+              <Input disabled={true} />
+            </Form.Item>
+          )}
 
           <Form.Item<FieldType>
             label="名称"
