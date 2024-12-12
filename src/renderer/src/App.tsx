@@ -3,14 +3,13 @@ import {
   SettingOutlined,
   DatabaseOutlined,
   FileOutlined,
-  DashboardOutlined,
+  HomeOutlined,
   InfoCircleOutlined,
   CloudServerOutlined
 } from '@ant-design/icons'
 import type { MenuProps } from 'antd'
 import { Layout, Menu, theme } from 'antd'
-
-import Storage from '@/components/setting/Storage'
+import { Home, File, Meta, Storage, About } from '@/components'
 
 const { Content, Sider } = Layout
 
@@ -31,13 +30,13 @@ function getItem(
 }
 
 const items: MenuItem[] = [
-  getItem('首页', 'Home', <DashboardOutlined />),
+  getItem('首页', 'Home', <HomeOutlined />),
   getItem('文件', 'File', <FileOutlined />),
   getItem('设置', '', <SettingOutlined />, [
     getItem('存储', 'Storage', <CloudServerOutlined />),
-    getItem('元数据', 'Metadata', <DatabaseOutlined />)
+    getItem('元数据', 'Meta', <DatabaseOutlined />)
   ]),
-  getItem('关于', 'AboutPage', <InfoCircleOutlined />)
+  getItem('关于', 'About', <InfoCircleOutlined />)
 ]
 
 const App: React.FC = () => {
@@ -46,7 +45,7 @@ const App: React.FC = () => {
     token: { colorBgContainer, borderRadiusLG }
   } = theme.useToken()
 
-  const [currentPage, setCurrentPage] = useState('Storage')
+  const [currentPage, setCurrentPage] = useState('Home')
 
   const onClick: MenuProps['onClick'] = (e) => {
     setCurrentPage(e.key)
@@ -54,13 +53,23 @@ const App: React.FC = () => {
 
   let contentPage
   switch (currentPage) {
-    case '':
+    case 'Home':
+      contentPage = <Home />
+      break
+    case 'File':
+      contentPage = <File />
+      break
+    case 'Meta':
+      contentPage = <Meta />
       break
     case 'Storage':
       contentPage = <Storage />
       break
+    case 'About':
+      contentPage = <About />
+      break
     default:
-      // contentPage = <HomePage />
+      contentPage = <Home />
       break
   }
 

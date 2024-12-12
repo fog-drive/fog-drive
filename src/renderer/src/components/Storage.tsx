@@ -24,7 +24,7 @@ interface DataType {
   quotaUnit: string
 }
 
-const Storage: React.FC = () => {
+export const Storage: React.FC = () => {
   const [form] = Form.useForm()
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -201,5 +201,3 @@ const Storage: React.FC = () => {
     </div>
   )
 }
-
-export default Storage
