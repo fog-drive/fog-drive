@@ -2,10 +2,10 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { SaveStorage, GetStorage } from '@shared/types'
-import { saveStorage, getStorage } from '@/lib'
+import { SaveStorage, GetStorage, DeleteStorage } from '@shared/types'
+import { saveStorage, getStorage, deleteStorage } from '@/lib'
 import { dataSource } from './lib/db'
-import { CSaveStorage, CGetStorage } from '@shared/channels'
+import { CSaveStorage, CGetStorage, CDeleteStorage } from '@shared/channels'
 
 
 function createWindow(): void {
@@ -59,6 +59,7 @@ app.whenReady().then(async () => {
 
   ipcMain.handle(CSaveStorage, (_, ...args: Parameters<SaveStorage>) => saveStorage(...args))
   ipcMain.handle(CGetStorage, (_, ...args: Parameters<GetStorage>) => getStorage(...args))
+  ipcMain.handle(CDeleteStorage, (_, ...args: Parameters<DeleteStorage>) => deleteStorage(...args))
 
   createWindow()
 

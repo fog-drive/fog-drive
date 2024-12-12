@@ -29,6 +29,6 @@ export const getStorage: GetStorage = async (): Promise<StorageModel[]> => {
   }) as StorageModel[]
 }
 
-// export const deleteStorage = (): Promise<void> => {
-//   dataSource.getRepository(StorageEntity)
-// }
+export const deleteStorage = async (id: number): Promise<void> => {
+  await dataSource.getRepository(StorageEntity).delete(id)
+}

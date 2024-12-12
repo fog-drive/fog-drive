@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { SaveStorage, GetStorage } from '@shared/types'
-import { CSaveStorage, CGetStorage } from '@shared/channels'
+import { SaveStorage, GetStorage, DeleteStorage } from '@shared/types'
+import { CSaveStorage, CGetStorage, CDeleteStorage } from '@shared/channels'
 
 // Custom APIs for renderer
 
@@ -11,7 +11,8 @@ if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('context', {
       saveStorage: (...args: Parameters<SaveStorage>) => ipcRenderer.invoke(CSaveStorage, ...args),
-      getStorage: (...args: Parameters<GetStorage>) => ipcRenderer.invoke(CGetStorage, ...args)
+      getStorage: (...args: Parameters<GetStorage>) => ipcRenderer.invoke(CGetStorage, ...args),
+      deleteStorage: (...args: Parameters<DeleteStorage>) => ipcRenderer.invoke(CDeleteStorage, ...args)
     })
   } catch (error) {
     console.error(error)

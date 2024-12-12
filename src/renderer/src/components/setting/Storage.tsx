@@ -24,13 +24,16 @@ interface DataType {
   quotaUnit: string
 }
 
-const deleteStorage = (id: number): void => {
-  console.log(id)
-}
-
 const Storage: React.FC = () => {
   const [form] = Form.useForm()
   const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const [version, setVersion] = useState(0)
+
+  const deleteStorage = (id: number): void => {
+    window.context.deleteStorage(id)
+    setVersion(version + 1)
+  }
 
   // for ID input
   const [isIdHidden, setIsIdHidden] = useState(false)
@@ -82,11 +85,11 @@ const Storage: React.FC = () => {
 
   const onFinish: FormProps<FieldType>['onFinish'] = (record) => {
     const storage = record as StorageModel
-    console.log(storage)
     storage.type = 's3'
     window.context.saveStorage(storage)
     setIsModalOpen(false)
-    message.success(JSON.stringify(storage))
+    setVersion(version + 1)
+    message.success('ok')
   }
 
   const onFinishFailed: FormProps<FieldType>['onFinishFailed'] = (errorInfo) => {
@@ -116,7 +119,7 @@ const Storage: React.FC = () => {
       )
     }
     fetchData()
-  }, [])
+  }, [version])
   return (
     <div>
       <div style={{ padding: '16px 0px' }}>

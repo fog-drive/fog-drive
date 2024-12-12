@@ -5,6 +5,7 @@ declare global {
     context: {
       saveStorage: SaveStorage
       getStorage: GetStorage
+      deleteStorage: DeleteStorage
     }
   }
 }
