@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { AppstoreAddOutlined } from '@ant-design/icons'
-import { Button, Space, Table, Modal, Form, Input, message } from 'antd'
+import { Button, Space, Table, Modal, Form, Input, message, Select } from 'antd'
 import { StorageModel } from '@shared/models'
-import type { FormProps } from 'antd'
-import type { TableProps } from 'antd'
+import type { FormProps, TableProps } from 'antd'
 
 type FieldType = {
   id?: number
   name?: string
+  type?: string
   accessKey?: string
   secretKey?: string
   endpoint?: string
@@ -22,11 +22,18 @@ interface DataType {
   type: string
   quota: number
   quotaUnit: string
+  accessKey?: string
+  secretKey?: string
+  endpoint?: string
+  bucket?: string
 }
 
 export const Storage: React.FC = () => {
   const [form] = Form.useForm()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCreate, setIsCreate] = useState(true)
+
+  const [selectOption, setSelectOption] = useState('')
 
   const [version, setVersion] = useState(0)
 
@@ -35,15 +42,24 @@ export const Storage: React.FC = () => {
     setVersion(version + 1)
   }
 
-  // for ID input
-  const [isIdHidden, setIsIdHidden] = useState(false)
-
   const showModal = (storage: DataType | null): void => {
     if (null != storage) {
-      form.setFieldsValue({ id: storage.id, name: storage.name })
-      setIsIdHidden(false)
+      if (storage.type === 's3') {
+        const values = {
+          type: storage.type,
+          id: storage.id,
+          name: storage.name,
+          accessKey: storage.accessKey,
+          secretKey: storage.secretKey,
+          endpoint: storage.endpoint,
+          bucket: storage.bucket
+        }
+        setSelectOption(storage.type)
+        form.setFieldsValue(values)
+      }
+      setIsCreate(false)
     } else {
-      setIsIdHidden(true)
+      setIsCreate(true)
     }
     setIsModalOpen(true)
   }
@@ -83,12 +99,14 @@ export const Storage: React.FC = () => {
     }
   ]
 
+  // submit form
   const onFinish: FormProps<FieldType>['onFinish'] = (record) => {
     const storage = record as StorageModel
-    storage.type = 's3'
     window.context.saveStorage(storage)
     setIsModalOpen(false)
     setVersion(version + 1)
+    form.resetFields()
+    setSelectOption('')
     message.success('ok')
   }
 
@@ -104,6 +122,10 @@ export const Storage: React.FC = () => {
     setIsModalOpen(false)
   }
 
+  const showNext = (value: string): void => {
+    setSelectOption(value)
+  }
+
   const [data, setData] = useState<DataType[]>([])
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
@@ -114,7 +136,11 @@ export const Storage: React.FC = () => {
           name: model.name,
           type: model.type,
           quota: 1000,
-          quotaUnit: 'Mb'
+          quotaUnit: 'Mb',
+          accessKey: model.accessKey,
+          secretKey: model.secretKey,
+          endpoint: model.endpoint,
+          bucket: model.bucket
         })) as DataType[]
       )
     }
@@ -129,11 +155,17 @@ export const Storage: React.FC = () => {
       </div>
       <Table<DataType>
         columns={columns}
-        // pagination={{ position: ['bottomRight'] }}
         dataSource={data}
-        style={{ width: '100vh' }}
+        style={{ width: '100%' }}
+        pagination={false}
       />
-      <Modal title="存储" open={isModalOpen} onOk={handleOk} onCancel={handleCancel} footer={[]}>
+      <Modal
+        title="添加存储"
+        open={isModalOpen}
+        onOk={handleOk}
+        onCancel={handleCancel}
+        footer={[]}
+      >
         <Form
           name="basic"
           form={form}
@@ -145,57 +177,79 @@ export const Storage: React.FC = () => {
           onFinishFailed={onFinishFailed}
           autoComplete="off"
         >
-          {!isIdHidden && (
+          {isCreate ? (
+            <Form.Item<FieldType> label="存储类型" required={true} name="type">
+              <Select
+                showSearch
+                placeholder="选择一个存储类型"
+                optionFilterProp="label"
+                onChange={showNext}
+                options={[
+                  { value: 's3', label: 's3' },
+                  { value: 'developing ...', label: '开发中 ...' }
+                ]}
+                disabled={false}
+              />
+            </Form.Item>
+          ) : (
             <Form.Item<FieldType> label="Id" name="id" rules={[{ required: false }]}>
               <Input disabled={true} />
             </Form.Item>
           )}
 
-          <Form.Item<FieldType>
-            label="名称"
-            name="name"
-            rules={[{ required: true, message: '请输入名称!' }]}
-          >
-            <Input />
-          </Form.Item>
 
-          <Form.Item<FieldType>
-            label="Access Key"
-            name="accessKey"
-            rules={[{ required: true, message: '请输入Access Key!' }]}
-          >
-            <Input />
-          </Form.Item>
+          {!isCreate && (
+            <Form.Item<FieldType> label="存储类型" required={true} name="type">
+              <Select showSearch optionFilterProp="label" disabled={true} />
+            </Form.Item>
+          )}
 
-          <Form.Item<FieldType>
-            label="Secret Key"
-            name="secretKey"
-            rules={[{ required: true, message: '请输入Secret Key!' }]}
-          >
-            <Input.Password />
-          </Form.Item>
+          {selectOption == 's3' && (
+            <>
+              <Form.Item<FieldType>
+                label="名称"
+                name="name"
+                rules={[{ required: true, message: '请输入名称!' }]}
+              >
+                <Input />
+              </Form.Item>
+              <Form.Item<FieldType>
+                label="Access Key"
+                name="accessKey"
+                rules={[{ required: true, message: '请输入Access Key!' }]}
+              >
+                <Input />
+              </Form.Item>
+              <Form.Item<FieldType>
+                label="Secret Key"
+                name="secretKey"
+                rules={[{ required: true, message: '请输入Secret Key!' }]}
+              >
+                <Input.Password />
+              </Form.Item>
 
-          <Form.Item<FieldType>
-            label="Endpoint"
-            name="endpoint"
-            rules={[{ required: true, message: '请输入Endpoint!' }]}
-          >
-            <Input />
-          </Form.Item>
+              <Form.Item<FieldType>
+                label="Endpoint"
+                name="endpoint"
+                rules={[{ required: true, message: '请输入Endpoint!' }]}
+              >
+                <Input />
+              </Form.Item>
 
-          <Form.Item<FieldType>
-            label="Bucket"
-            name="bucket"
-            rules={[{ required: true, message: '请输入Bucket!' }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item label={null}>
-            <Button type="primary" htmlType="submit">
-              Submit
-            </Button>
-          </Form.Item>
+              <Form.Item<FieldType>
+                label="Bucket"
+                name="bucket"
+                rules={[{ required: true, message: '请输入Bucket!' }]}
+              >
+                <Input />
+              </Form.Item>
+              <Form.Item>
+                <Button type="primary" htmlType="submit">
+                  Submit
+                </Button>
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Modal>
     </div>

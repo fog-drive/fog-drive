@@ -25,7 +25,20 @@ export const saveStorage: SaveStorage = async (storageModel: StorageModel): Prom
 export const getStorage: GetStorage = async (): Promise<StorageModel[]> => {
   const result = await dataSource.getRepository(StorageEntity).find()
   return result.map((entity) => {
-    return { id: entity.id, name: entity.name, type: entity.type }
+    let model: StorageModel | null = null
+    if ('s3' === entity.type) {
+      const values = JSON.parse(entity.values)
+      model = {
+        id: entity.id,
+        name: entity.name,
+        type: entity.type,
+        accessKey: values.accessKey,
+        secretKey: values.secretKey,
+        endpoint: values.endpoint,
+        bucket: values.bucket
+      }
+    }
+    return model
   }) as StorageModel[]
 }
 

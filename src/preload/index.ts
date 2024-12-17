@@ -12,7 +12,8 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('context', {
       saveStorage: (...args: Parameters<SaveStorage>) => ipcRenderer.invoke(CSaveStorage, ...args),
       getStorage: (...args: Parameters<GetStorage>) => ipcRenderer.invoke(CGetStorage, ...args),
-      deleteStorage: (...args: Parameters<DeleteStorage>) => ipcRenderer.invoke(CDeleteStorage, ...args)
+      deleteStorage: (...args: Parameters<DeleteStorage>) =>
+        ipcRenderer.invoke(CDeleteStorage, ...args)
     })
   } catch (error) {
     console.error(error)
