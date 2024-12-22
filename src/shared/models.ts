@@ -5,5 +5,6 @@ export type StorageModel = {
   accessKey: string
   secretKey: string
   endpoint: string
+  region: string
   bucket: string
 }

@@ -11,6 +11,7 @@ type FieldType = {
   accessKey?: string
   secretKey?: string
   endpoint?: string
+  region?: string
   bucket?: string
 }
 
@@ -25,6 +26,7 @@ interface DataType {
   accessKey?: string
   secretKey?: string
   endpoint?: string
+  region?: string
   bucket?: string
 }
 
@@ -52,6 +54,7 @@ export const Storage: React.FC = () => {
           accessKey: storage.accessKey,
           secretKey: storage.secretKey,
           endpoint: storage.endpoint,
+          region: storage.region,
           bucket: storage.bucket
         }
         setSelectOption(storage.type)
@@ -140,6 +143,7 @@ export const Storage: React.FC = () => {
           accessKey: model.accessKey,
           secretKey: model.secretKey,
           endpoint: model.endpoint,
+          region: model.region,
           bucket: model.bucket
         })) as DataType[]
       )
@@ -232,6 +236,14 @@ export const Storage: React.FC = () => {
                 label="Endpoint"
                 name="endpoint"
                 rules={[{ required: true, message: '请输入Endpoint!' }]}
+              >
+                <Input />
+              </Form.Item>
+
+              <Form.Item<FieldType>
+                label="Region"
+                name="region"
+                rules={[{ required: true, message: '请输入Region!' }]}
               >
                 <Input />
               </Form.Item>

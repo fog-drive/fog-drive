@@ -9,8 +9,8 @@ export const saveStorage: SaveStorage = async (storageModel: StorageModel): Prom
   storageEntity.id = storageModel.id
   storageEntity.name = storageModel.name
   storageEntity.type = storageModel.type
-  const { accessKey, secretKey, endpoint, bucket } = storageModel
-  const values = JSON.stringify({ accessKey, secretKey, endpoint, bucket })
+  const { accessKey, secretKey, endpoint, region, bucket } = storageModel
+  const values = JSON.stringify({ accessKey, secretKey, endpoint, region, bucket })
   storageEntity.values = values
   dataSource
     .getRepository(StorageEntity)
@@ -20,6 +20,32 @@ export const saveStorage: SaveStorage = async (storageModel: StorageModel): Prom
         console.log(error.message)
       }
     })
+}
+
+export const getStorageById = async (id: number): Promise<StorageModel> => {
+  const result = await dataSource.getRepository(StorageEntity).findOne({ where: { id: id } })
+  if (null === result) {
+    throw 'The data does not exist.'
+  }
+  return entity2Model(result)
+}
+
+function entity2Model(entity: StorageEntity): StorageModel {
+  const values = JSON.parse(entity.values)
+  if ('s3' === entity.type) {
+    return {
+      id: entity.id,
+      type: entity.type,
+      name: entity.name,
+      endpoint: values.endpoint,
+      region: values.region,
+      accessKey: values.accessKey,
+      secretKey: values.secretKey,
+      bucket: values.bucket
+    }
+  } else {
+    throw 'This type is not supported.'
+  }
 }
 
 export const getStorage: GetStorage = async (): Promise<StorageModel[]> => {
@@ -35,6 +61,7 @@ export const getStorage: GetStorage = async (): Promise<StorageModel[]> => {
         accessKey: values.accessKey,
         secretKey: values.secretKey,
         endpoint: values.endpoint,
+        region: values.region,
         bucket: values.bucket
       }
     }
