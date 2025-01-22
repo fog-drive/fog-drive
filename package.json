@@ -18,12 +18,14 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "test": "vitest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.714.0",
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^3.0.0",
+    "@types/lodash": "^4.17.13",
     "antd": "^5.22.3",
     "electron-updater": "^6.1.7",
     "sqlite3": "^5.1.7",
@@ -48,6 +50,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.5.2",
-    "vite": "^5.3.1"
+    "vite": "^5.3.1",
+    "vitest": "^2.1.8"
   }
 }

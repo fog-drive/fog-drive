@@ -1,14 +1,11 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { SaveStorage, GetStorage, DeleteStorage, Put } from '@shared/types'
-import { saveStorage, getStorage, deleteStorage } from '@/lib'
-import { dataSource } from './lib/db'
-import { CSaveStorage, CGetStorage, CDeleteStorage, CPut } from '@shared/channels'
-import { put } from '@/lib/storage'
+import * as ipcHandler from './core/ipcHandler'
 
 function createWindow(): void {
+  // Create main window
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -45,6 +42,7 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  // App is ready, initializing...
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -55,13 +53,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  await dataSource.initialize()
-
-  ipcMain.handle(CSaveStorage, (_, ...args: Parameters<SaveStorage>) => saveStorage(...args))
-  ipcMain.handle(CGetStorage, (_, ...args: Parameters<GetStorage>) => getStorage(...args))
-  ipcMain.handle(CDeleteStorage, (_, ...args: Parameters<DeleteStorage>) => deleteStorage(...args))
-  ipcMain.handle(CPut, (_, ...args: Parameters<Put>) => put(...args))
-
+  init()
   createWindow()
 
   app.on('activate', function () {
@@ -75,6 +67,7 @@ app.whenReady().then(async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  // All windows closed
   if (process.platform !== 'darwin') {
     app.quit()
   }
@@ -82,3 +75,10 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+const init = (): void => {
+  try {
+    ipcHandler.init()
+  } catch (error) {
+    console.error('Failed to initialize IPC handlers:', error)
+  }
+}

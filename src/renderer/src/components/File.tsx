@@ -1,46 +1,102 @@
-import React from 'react'
-import { InboxOutlined } from '@ant-design/icons'
-import type { UploadProps } from 'antd'
-import { message, Upload } from 'antd'
+import React, { useState } from 'react'
+import { PlusOutlined, FileImageOutlined } from '@ant-design/icons'
+import { Flex, Button, Upload, message } from 'antd'
+import type { UploadProps, UploadFile } from 'antd'
 import { UploadRequestOption } from 'rc-upload/lib/interface'
 
-const { Dragger } = Upload
+interface FileItem extends UploadFile {
+  name: string
+}
+
+interface CustomFile extends File {
+  path: string
+}
 
 const handleCustomRequest = (options: UploadRequestOption): void => {
-  const file = options.file
+  const file = options.file as CustomFile
   window.object.put(file.path)
-  options.onSuccess?.('ok', options.file)
+  options.onSuccess?.('ok', file)
 }
 
-const props: UploadProps = {
-  name: 'file',
-  multiple: true,
-  customRequest: handleCustomRequest,
-  onChange(info) {
-    const { status } = info.file
-    if (status !== 'uploading') {
-      console.log(info.file, info.fileList)
+export const File: React.FC = () => {
+  const [files, setFiles] = useState<FileItem[]>([])
+
+  const props: UploadProps = {
+    name: 'file',
+    multiple: true,
+    customRequest: handleCustomRequest,
+    showUploadList: false,
+    onChange(info) {
+      const { status } = info.file
+      if (status === 'done') {
+        message.success(`${info.file.name} file uploaded successfully.`)
+        setFiles((prev) => [...prev, info.file as FileItem])
+      } else if (status === 'error') {
+        message.error(`${info.file.name} file upload failed.`)
+      }
     }
-    if (status === 'done') {
-      message.success(`${info.file.name} file uploaded successfully.`)
-    } else if (status === 'error') {
-      message.error(`${info.file.name} file upload failed.`)
-    }
-  },
-  onDrop(e) {
-    console.log('Dropped files', e.dataTransfer.files)
   }
-}
 
-export const File: React.FC = () => (
-  <Dragger {...props}>
-    <p className="ant-upload-drag-icon">
-      <InboxOutlined />
-    </p>
-    <p className="ant-upload-text">Click or drag file to this area to upload</p>
-    <p className="ant-upload-hint">
-      Support for a single or bulk upload. Strictly prohibited from uploading company data or other
-      banned files.
-    </p>
-  </Dragger>
-)
+  return (
+    <Flex gap="middle" vertical={false}>
+      {files.map((file, index) => (
+        <div
+          key={index}
+          style={{
+            width: '96px',
+            height: '96px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          <FileImageOutlined style={{ fontSize: '48px' }} />
+          <div
+            style={{
+              marginTop: '8px',
+              fontSize: '12px',
+              wordBreak: 'break-word',
+              lineHeight: '1.2',
+              maxWidth: '96px'
+            }}
+          >
+            {file.name}
+          </div>
+        </div>
+      ))}
+
+      <Upload {...props}>
+        <div
+          style={{
+            width: '96px',
+            height: '96px',
+            display: 'flex',
+            border: '1px dashed #d9d9d9',
+            borderRadius: '8px',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            cursor: 'pointer'
+          }}
+        >
+          <PlusOutlined style={{ fontSize: '48px' }} />
+          <div
+            style={{
+              marginTop: '8px',
+              fontSize: '12px',
+              wordBreak: 'break-word',
+              lineHeight: '1.2',
+              maxWidth: '96px'
+            }}
+          >
+            添加
+          </div>
+        </div>
+      </Upload>
+    </Flex>
+  )
+}
