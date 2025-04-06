@@ -1,161 +1,41 @@
-import {
-  DataSource,
-  Column,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-  QueryFailedError,
-  PrimaryColumn
-} from 'typeorm'
-import * as _ from 'lodash'
-import { StorageModel } from '@shared/models'
+export class Inode {
+  private readonly i: bigint
 
-export class Meta {
-  appMetaEngine: DataSource
-  setting: Map<string, string>
-  constructor(appMetaEngine: DataSource, setting: Map<string, string>) {
-    this.appMetaEngine = appMetaEngine
-    this.setting = setting
+  static readonly Root = new Inode(1)
+  static readonly Trash = new Inode(0x7fffffff10000000n)
+
+  constructor(value: bigint | number) {
+    const val = typeof value === 'bigint' ? value : BigInt(value)
+    this.i = val
   }
 
-  // create(parent: number, name: string, ) {
-
-  // }
-
-  saveStorage(storageModel: StorageModel): void {
-    const storageEntity = new StorageEntity()
-    storageEntity.id = storageModel.id
-    storageEntity.name = storageModel.name
-    storageEntity.type = storageModel.type
-    const { accessKey, secretKey, endpoint, region, bucket } = storageModel
-    const values = JSON.stringify({ accessKey, secretKey, endpoint, region, bucket })
-    storageEntity.values = values
-    this.appMetaEngine
-      .getRepository(StorageEntity)
-      .upsert(storageEntity, { conflictPaths: ['id'], skipUpdateIfNoValuesChanged: true })
-      .catch((error: Error) => {
-        if (error instanceof QueryFailedError) {
-          console.log(error.message)
-        }
-      })
+  toString(): string {
+    return this.i.toString()
   }
 
-  async listStorage(): Promise<StorageModel[]> {
-    const result = await this.appMetaEngine.getRepository(StorageEntity).find()
-    return result.map((entity) => {
-      let model: StorageModel | null = null
-      if ('s3' === entity.type) {
-        const values = JSON.parse(entity.values)
-        model = {
-          id: entity.id,
-          name: entity.name,
-          type: entity.type,
-          accessKey: values.accessKey,
-          secretKey: values.secretKey,
-          endpoint: values.endpoint,
-          region: values.region,
-          bucket: values.bucket
-        }
-      }
-      return model
-    }) as StorageModel[]
+  isValid(): boolean {
+    return this.i >= Inode.Root.i
   }
 
-  async getStorage(id: number): Promise<StorageModel> {
-    const result = await this.appMetaEngine
-      .getRepository(StorageEntity)
-      .findOne({ where: { id: id } })
-    if (null === result) {
-      throw 'The data does not exist.'
-    }
-    return entity2Model(result)
+  isTrash(): boolean {
+    return this.i >= Inode.Trash.i
   }
 
-  deleteStorage(id: number): void {
-    this.appMetaEngine.getRepository(StorageEntity).delete(id)
+  isNormal(): boolean {
+    return this.i >= Inode.Root.i && this.i < Inode.Trash.i
+  }
+
+  static isTrash(ino: Inode): boolean {
+    return ino.i >= Inode.Trash.i
+  }
+
+  valueOf(): bigint {
+    return this.i
   }
 }
 
-export async function newMeta(): Promise<Meta> {
-  const ds = await new DataSource({
-    type: 'sqlite',
-    database: '../fd.db',
-    logging: true,
-    synchronize: true,
-    entities: [Setting, StorageEntity, Edge]
-  }).initialize()
-  const settings = await ds.getRepository(Setting).find()
-  const setting = new Map(_.map(settings, (item) => [item.key, item.value]))
-  console.log(setting)
-  return new Meta(ds, setting)
-}
-
-@Entity('fd_storage')
-export class StorageEntity {
-  @PrimaryGeneratedColumn()
-  id: number
-
-  @Column({ type: 'varchar', length: 255, unique: true })
-  name: string
-
-  @Column({ type: 'varchar', length: 255 })
-  type: string
-
-  @Column({ type: 'int8', nullable: true })
-  quota: number
-
-  @Column({ type: 'varchar', length: 4096 })
-  values: string
-}
-
-@Entity('fd_setting')
-export class Setting {
-  @PrimaryColumn({ type: 'varchar', length: 255 })
-  key: string
-
-  @Column({ type: 'varchar', length: 4096 })
-  value: string
-}
-
-@Entity('fd_edge')
-@Index(['parent', 'name'], { unique: true })
-export class Edge {
-  @PrimaryGeneratedColumn()
-  id: number
-
-  @Column({ type: 'bigint', nullable: false })
-  parent: number
-
-  @Column({ type: 'blob', length: 255, nullable: false })
-  name: Buffer
-
-  @Column({ type: 'bigint', nullable: false })
-  @Index('IDX_fd_edge_inode')
-  inode: number
-
-  @Column({ type: 'integer', nullable: false })
-  type: number
-}
-
-@Entity('fd_node')
-export class Node {
-  inode: number
-}
-
-function entity2Model(entity: StorageEntity): StorageModel {
-  const values = JSON.parse(entity.values)
-  if ('s3' === entity.type) {
-    return {
-      id: entity.id,
-      type: entity.type,
-      name: entity.name,
-      endpoint: values.endpoint,
-      region: values.region,
-      accessKey: values.accessKey,
-      secretKey: values.secretKey,
-      bucket: values.bucket
-    }
-  } else {
-    throw 'This type is not supported.'
-  }
+export interface Meta {
+  name: () => string
+  create: (parent: Inode, name: string, uid: number, gid: number) => void
+  lookup: (parent: Inode, name: string) => Promise<Inode>
 }
