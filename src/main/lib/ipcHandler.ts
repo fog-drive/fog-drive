@@ -1,5 +1,5 @@
 import { newFDFS } from '@/fs'
-import { newMeta } from '@/lib/meta'
+import { newMeta } from '@/meta'
 import { CSaveStorage, CGetStorage, CDeleteStorage, CPut } from '@shared/channels'
 import { SaveStorage, GetStorage, DeleteStorage, Put } from '@shared/types'
 import { ipcMain } from 'electron'

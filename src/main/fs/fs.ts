@@ -1,4 +1,4 @@
-import { Meta } from '@/lib/meta'
+import { Meta } from '@/meta'
 import path from 'path'
 
 function string2Buffer(str: string): Uint8Array {

@@ -9,6 +9,7 @@ export default defineConfig({
       alias: {
         '@/lib': resolve('src/main/lib'),
         '@/fs': resolve('src/main/fs'),
+        '@/meta': resolve('src/main/meta'),
         '@shared': resolve('src/shared')
       }
     }
