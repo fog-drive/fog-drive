@@ -28,7 +28,7 @@
     "@types/lodash": "^4.17.13",
     "antd": "^5.22.3",
     "electron-updater": "^6.1.7",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^5.1.6",
     "typeorm": "^0.3.20",
     "typeorm-paginate": "^1.0.7"
   },
