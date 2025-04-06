@@ -142,7 +142,6 @@ export class Node {
   inode: number
 }
 
-
 function entity2Model(entity: StorageEntity): StorageModel {
   const values = JSON.parse(entity.values)
   if ('s3' === entity.type) {

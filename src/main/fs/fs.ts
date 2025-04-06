@@ -1,4 +1,4 @@
-import { Meta } from './meta'
+import { Meta } from '@/lib/meta'
 import path from 'path'
 
 function string2Buffer(str: string): Uint8Array {
@@ -20,13 +20,8 @@ export class FDFS {
 
   put(filePath: string) {
     const fileName = path.basename(filePath)
-
   }
 
-
-  create() {
-
-  }
 }
 
 

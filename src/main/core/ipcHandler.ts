@@ -1,10 +1,8 @@
-import { newFDFS } from '@/lib/fdfs'
+import { newFDFS } from '@/fs'
 import { newMeta } from '@/lib/meta'
 import { CSaveStorage, CGetStorage, CDeleteStorage, CPut } from '@shared/channels'
 import { SaveStorage, GetStorage, DeleteStorage, Put } from '@shared/types'
 import { ipcMain } from 'electron'
-import path from 'path'
-import * as fs from 'fs'
 
 export async function init(): Promise<void> {
   const meta = await newMeta()
@@ -21,6 +19,6 @@ export async function init(): Promise<void> {
 const BLK_SIZE = 1024 * 1024
 
 export function putObject(filePath: string): void {
-  const fileName = path.basename(filePath)
-  const rs = fs.createReadStream(filePath, { highWaterMark: BLK_SIZE })
+  // const fileName = path.basename(filePath)
+  // const rs = fs.createReadStream(filePath, { highWaterMark: BLK_SIZE })
 }
