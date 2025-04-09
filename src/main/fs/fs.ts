@@ -35,7 +35,7 @@ export class FileSystem {
     const basename = path.basename(p)
     const i = this.resolve(p)
 
-    return new File(p, new Inode(i), this)
+    return new File(p, i, this)
   }
 
 

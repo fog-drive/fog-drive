@@ -1,12 +1,10 @@
 export class Inode {
-  private readonly i: bigint
+  private i: number
 
-  static readonly Root = new Inode(1)
-  static readonly Trash = new Inode(0x7fffffff10000000n)
-
-  constructor(value: bigint | number) {
-    const val = typeof value === 'bigint' ? value : BigInt(value)
-    this.i = val
+  static readonly Root = Inode.valueOf(1)
+  static readonly Trash = Inode.valueOf(9000000000000000)
+  private constructor(i: number | string) {
+    this.i = Number(i)
   }
 
   toString(): string {
@@ -25,12 +23,16 @@ export class Inode {
     return this.i >= Inode.Root.i && this.i < Inode.Trash.i
   }
 
+  toNumber(): number {
+    return this.i
+  }
+
   static isTrash(ino: Inode): boolean {
     return ino.i >= Inode.Trash.i
   }
 
-  valueOf(): bigint {
-    return this.i
+  static valueOf(i: number | string): Inode {
+    return new Inode(i)
   }
 }
 

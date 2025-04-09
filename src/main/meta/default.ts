@@ -32,7 +32,7 @@ export class DefaultMeta implements Meta {
     if (null === edge) {
       throw new Error('ENOENT')
     } else {
-      inode = new Inode(edge.inode)
+      inode = edge.inode
     }
     return Promise.resolve(inode)
   }

@@ -1,4 +1,21 @@
-import { Column, DataSource, Entity, Index, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  BaseEntity,
+  Column,
+  DataSource,
+  Entity,
+  Index,
+  PrimaryColumn,
+  PrimaryGeneratedColumn,
+  ValueTransformer
+} from 'typeorm'
+import { Inode } from './meta'
+
+/**
+ * todo:
+ * typeorm does not native support bigint
+ * refer to: https://github.com/typeorm/typeorm/issues/4179#issuecomment-719524661
+ * refer to: https://github.com/typeorm/typeorm/issues/3136#issuecomment-1489736686
+ */
 
 export const newEngine = async (): Promise<DataSource> => {
   const engine = await new DataSource({
@@ -9,6 +26,15 @@ export const newEngine = async (): Promise<DataSource> => {
     entities: [Setting, StorageEntity, Edge, Node, Slice]
   }).initialize()
   return engine
+}
+
+const inoTransformer: ValueTransformer = {
+  to: (value: Inode) => {
+    return value.toNumber().toString()
+  },
+  from: (value: string) => {
+    return Inode.valueOf(value)
+  }
 }
 
 @Entity('fd_storage')
@@ -40,19 +66,19 @@ export class Setting {
 
 @Entity('fd_edge')
 @Index(['parent', 'name'], { unique: true })
-export class Edge {
+export class Edge extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @Column({ type: 'bigint', nullable: false })
-  parent!: number
+  @Column({ type: 'bigint', nullable: false, transformer: inoTransformer })
+  parent!: Inode
 
   @Column({ type: 'blob', length: 255, nullable: false })
   name!: Buffer
 
-  @Column({ type: 'bigint', nullable: false })
   @Index('IDX_fd_edge_inode')
-  inode!: number
+  @Column({ type: 'bigint', nullable: true, transformer: inoTransformer })
+  inode!: Inode
 
   @Column({ type: 'integer', nullable: false })
   type!: number
@@ -61,11 +87,11 @@ export class Edge {
 @Entity('fd_node')
 export class Node {
   @PrimaryGeneratedColumn()
-  inode!: bigint
+  public inode!: number
   @Column({ type: 'integer', nullable: false })
   type!: number
   @Column({ type: 'bigint', nullable: false })
-  parent!: bigint
+  parent!: number
 }
 
 @Entity('fd_slice')
