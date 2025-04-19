@@ -1,0 +1,136 @@
+name: "ltp-syscalls"
+
+on:
+  push:
+    branches:
+      - 'release-**'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    #The branches below must be a subset of the branches above
+    branches:
+      - 'release-**'
+    paths-ignore:
+      - 'docs/**'
+  schedule:
+    - cron:  '30 20 * * *'
+  workflow_dispatch:
+    inputs:
+      debug:
+        type: boolean
+        description: "Run the build with tmate debugging enabled"
+        required: false
+        default: false
+
+jobs:
+  ltpsyscalls:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # meta: [ 'sqlite3', 'redis', 'mysql', 'tikv', 'tidb', 'postgres', 'mariadb', 'badger', 'fdb']
+        meta: ['redis']
+        type: [ 'head', 'middle', 'tail']
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Set Variable
+        id: vars
+        run: |
+          if [ "${{matrix.meta}}" == "fdb" ]; then
+            echo "target=juicefs.fdb" >> $GITHUB_OUTPUT
+          else
+            echo "target=juicefs" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        timeout-minutes: 10
+        uses: ./.github/actions/build
+        with: 
+          target: ${{steps.vars.outputs.target}}
+
+      - name: Prepare meta db
+        run: | 
+          chmod +x .github/scripts/start_meta_engine.sh
+          source .github/scripts/start_meta_engine.sh
+          start_meta_engine ${{matrix.meta}}
+          meta_url=$(get_meta_url ${{matrix.meta}})
+          create_database $meta_url
+
+      - name: Copy
+        run: |
+          cp .github/workflows/bash/rm_syscalls /tmp/
+          cp .github/workflows/bash/rm_list.sh /tmp/
+
+      - name: Juicefs Format
+        run: |
+          source .github/scripts/start_meta_engine.sh
+          meta_url=$(get_meta_url ${{matrix.meta}})
+          sudo ./juicefs format --trash-days 0 $meta_url pics
+
+      - name: Juicefs Mount
+        run: |
+          source .github/scripts/start_meta_engine.sh
+          meta_url=$(get_meta_url ${{matrix.meta}})
+          sudo ./juicefs mount --enable-xattr -d $meta_url /tmp/jfs --no-usage-report
+
+      - name: Install LTP Syscalls
+        run: |
+          sudo .github/scripts/apt_install.sh libaio-dev libacl1-dev attr
+          wget -O ltp.tar.gz https://github.com/linux-test-project/ltp/archive/refs/tags/20210927.tar.gz
+          mkdir ltp
+          tar -xvf ltp.tar.gz -C ltp --strip-components 1
+          cd ltp
+          make autotools
+          ./configure
+          make
+          sudo make install
+
+      - name: Run LTP Syscalls
+        timeout-minutes: 60
+        run: |
+          cd /opt/ltp
+          sudo chmod +x /tmp/rm_list.sh
+          sudo chmod 777 runtest/syscalls
+          sudo /tmp/rm_list.sh /tmp/rm_syscalls /opt/ltp/runtest/syscalls
+          split -a 1 -d -l $(( $(wc -l < /opt/ltp/runtest/syscalls) / 3 + 1 )) /opt/ltp/runtest/syscalls /tmp/syscalls_
+          sudo chmod 777 /tmp/syscalls_*
+          if [ "${{matrix.type}}" == "head" ]; then
+            cat /tmp/syscalls_0
+            sudo ./runltp -d /tmp/jfs -C result.log.failed -T result.log.tconf -l result0.log -f /tmp/syscalls_0
+          elif [ "${{matrix.type}}" == "middle" ]; then
+            cat /tmp/syscalls_1
+            sudo ./runltp -d /tmp/jfs -C result.log.failed -T result.log.tconf -l result1.log -f /tmp/syscalls_1
+          elif [ "${{matrix.type}}" == "tail" ]; then
+            cat /tmp/syscalls_2
+            sudo ./runltp -d /tmp/jfs -C result.log.failed -T result.log.tconf -l result2.log -f /tmp/syscalls_2
+          else
+            echo "matrix.type: ${{matrix.type}} is not valid" && exit 1
+          fi
+
+      - name: tconf Log
+        if: always()
+        run: |
+          cat /opt/ltp/output/result.log.tconf
+
+      - name: check ltpsyscall failed log
+        if: always()
+        run: |
+          cat /opt/ltp/output/result.log.failed
+
+      - name: Send Slack Notification
+        if: failure()
+        uses: juicedata/slack-notify-action@main
+        with:
+          channel-id: "${{ secrets.SLACK_CHANNEL_ID_FOR_PR_CHECK_NOTIFY }}"
+          slack_bot_token: "${{ secrets.SLACK_BOT_TOKEN }}"  
+
+      - name: Setup upterm session
+        if: failure() && (github.event.inputs.debug == 'true' || github.run_attempt != 1)
+        timeout-minutes: 60
+        uses: lhotari/action-upterm@v1

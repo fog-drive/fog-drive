@@ -1,0 +1,39 @@
+*.o
+*.sw[po]
+ltmain.sh
+*.orig
+*.rej
+.deps
+.dirstamp
+jfs
+*.rdb
+.release-env
+*.so
+libjfs.h
+docs/node_modules
+cmd/cmd
+.hypothesis
+/node_modules
+
+# os
+.DS_Store
+
+# ide
+.vscode
+.idea
+
+# lang
+__pycache__
+
+# temp
+pkg/meta/badger
+pkg/meta/testdata
+*.dump
+*.out
+
+# gen
+/juicefs
+/juicefs.ceph
+/juicefs.exe
+/juicefs.lite
+dist/

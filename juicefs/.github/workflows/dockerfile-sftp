@@ -1,0 +1,14 @@
+FROM debian:stable-slim
+RUN apt-get clean
+RUN apt-get update
+
+RUN apt-get install openssh-server -y
+
+RUN mkdir /run/sshd
+RUN sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+RUN echo "root:password"|chpasswd
+RUN useradd -m testUser1
+RUN echo "testUser1:password"|chpasswd
+EXPOSE 22
+CMD    ["/usr/sbin/sshd", "-D"]

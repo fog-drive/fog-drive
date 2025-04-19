@@ -1,0 +1,223 @@
+name: "gateway-test"
+
+on:
+  push:
+    branches: 
+      - release-**
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  pull_request:
+    #The branches below must be a subset of the branches above
+    branches: 
+      - release-**
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+    inputs:
+      debug:
+        type: boolean
+        description: "Run the build with tmate debugging enabled"
+        required: false
+        default: false
+  schedule:
+    - cron:  '0 0 * * *'
+
+jobs:
+  gateway:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        meta: [  'sqlite3', 'redis','tikv', 'badger',  'etcd', 'fdb']
+        file_size: ['100M']
+        isolation_level: ['']
+        include:
+          - meta: 'mariadb'
+            file_size: '100M'
+            isolation_level: "read committed"
+
+          - meta: 'mysql'
+            file_size: '100M'
+            isolation_level: "read committed"
+          - meta: 'mysql'
+            file_size: '100M'
+            isolation_level: "repeatable read"
+          - meta: 'mysql'
+            file_size: '100M'
+            isolation_level: "serializable"
+
+          - meta: 'postgres'
+            file_size: '100M'
+            isolation_level: "read committed"
+          - meta: 'postgres'
+            file_size: '100M'
+            isolation_level: "repeatable read"
+          - meta: 'postgres'
+            file_size: '100M'
+            isolation_level: "serializable"
+
+          - meta: 'tidb'
+            file_size: '100M'
+            isolation_level: "read committed"
+          - meta: 'tidb'
+            file_size: '100M'
+            isolation_level: "repeatable read"
+
+    runs-on: ubuntu-20.04
+
+    steps: 
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      
+      - name: Set Variable
+        id: vars
+        run: |
+          if [ "${{matrix.meta}}" == "fdb" ]; then
+            echo "target=juicefs.fdb" >> $GITHUB_OUTPUT
+          else
+            echo "target=juicefs" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        timeout-minutes: 10
+        uses: ./.github/actions/build
+        with: 
+          target: ${{steps.vars.outputs.target}}
+
+            
+      - name: Start meta
+        run: | 
+          sudo chmod +x .github/scripts/start_meta_engine.sh
+          source .github/scripts/start_meta_engine.sh
+          start_meta_engine ${{matrix.meta}}
+
+      - name: Install tools
+        run: | 
+          wget -q https://dl.minio.io/client/mc/release/linux-amd64/mc
+          chmod +x mc 
+        shell: bash
+        
+      - name: start gateway
+        shell: bash
+        run: |
+          source .github/scripts/start_meta_engine.sh
+          meta_url=$(get_meta_url ${{matrix.meta}})
+          create_database $meta_url ${{matrix.isolation_level}}
+          mp="/tmp/myjfs"
+          volume="myjfs"
+          export MINIO_ROOT_USER=minioadmin
+          export MINIO_ROOT_PASSWORD=minioadmin
+          ./juicefs format $meta_url $volume --trash-days 0
+          ./juicefs gateway $meta_url localhost:8080 --no-usage-report --access-log /tmp/access1.log &
+        
+      - name: Sync with multiple process
+        shell: bash
+        run: |
+          source .github/scripts/start_meta_engine.sh
+          meta_url=$(get_meta_url ${{matrix.meta}})
+          file_size=${{matrix.file_size}}
+          if [ $file_size="100M" ]; then 
+            file_count=5
+          else
+            file_count=2000
+          fi
+          threads=20
+          mp=/tmp/myjfs
+          volume=myjfs
+          
+          dd if=/dev/urandom of=file iflag=fullblock,count_bytes bs=4k count="$file_size" > /dev/null
+          mkdir data
+          for i in $(seq 1 $file_count); do
+            cp file data/file$i
+          done
+          start=`date +%s`
+          declare -a pids   
+          ./juicefs sync --dirs data/  s3://minioadmin:minioadmin@localhost:8080/$volume/data/ --no-https -p $threads &
+          pids+=($!)
+          ./juicefs sync --dirs data/  s3://minioadmin:minioadmin@localhost:8080/$volume/data/ --no-https -p $threads &
+          pids+=($!)
+          ./juicefs sync --dirs data/  s3://minioadmin:minioadmin@localhost:8080/$volume/data/ --no-https -p $threads &
+          pids+=($!)
+          wait "${pids[@]}"
+          rm -rf $HOME/.juicefs/cache/ || true
+          # ./mc alias set minio http://localhost:9000 minioadmin minioadmin --api S3v4
+          # ./mc mb minio/$volume
+          # ./mc cp --recursive data/  minio/$volume/data
+          end=`date +%s`
+          time=$((end-start))
+          echo time cost is: $time second
+          killall juicefs 
+          sleep 3
+          ./juicefs mount -d $meta_url $mp --no-usage-report
+          diff -ur data/ $mp/data/ 
+          echo "diff succeed"
+          ./juicefs umount  $mp --force
+        
+      - name: Sync with empty dir
+        run: |
+          source .github/scripts/start_meta_engine.sh
+          meta_url=$(get_meta_url ${{matrix.meta}})
+          threads=20
+          mp=/tmp/myjfs
+          volume=myjfs
+          export MINIO_ROOT_USER=minioadmin
+          export MINIO_ROOT_PASSWORD=minioadmin
+          ./juicefs mdtest $meta_url test --dirs 10 --depth 2 --files 10 --threads 10 --no-usage-report
+          ./juicefs gateway $meta_url localhost:8080 --access-log /tmp/access1.log &
+          sleep 10
+          mkdir emptydir
+          declare -a pids  
+          ./juicefs sync emptydir/ s3://minioadmin:minioadmin@localhost:8080/$volume/test/ --delete-dst --no-https -p $threads &
+          pids+=($!)
+          ./juicefs sync emptydir/ s3://minioadmin:minioadmin@localhost:8080/$volume/test/ --delete-dst --no-https -p $threads &
+          pids+=($!)
+          ./juicefs sync emptydir/ s3://minioadmin:minioadmin@localhost:8080/$volume/test/ --delete-dst --no-https -p $threads &
+          pids+=($!)
+          wait "${pids[@]}"
+          killall juicefs
+          sleep 3
+          ./juicefs mount -d $meta_url $mp --no-usage-report
+          [ -d "$mp/test/" ] && exit 1 
+          ./juicefs umount  $mp --force
+        shell: bash
+
+      - name: log
+        if: always()
+        shell: bash
+        run: | 
+          if [ -f ~/.juicefs/juicefs.log ]; then
+            tail -300 ~/.juicefs/juicefs.log
+            grep "<FATAL>:" ~/.juicefs/juicefs.log && exit 1 || true
+          fi
+
+      - name: Setup upterm session
+        if: failure() && (github.event.inputs.debug == 'true' || github.run_attempt != 1)
+        timeout-minutes: 1
+        uses: lhotari/action-upterm@v1
+
+  success-all-test:
+    runs-on: ubuntu-latest
+    needs: [gateway]
+    if: always()
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v3
+      - uses: actions/checkout@v3
+
+      - name: Check Failure
+        if: env.WORKFLOW_CONCLUSION == 'failure'
+        run: exit 1
+
+      - name: Send Slack Notification
+        if: failure() && github.event_name != 'workflow_dispatch'
+        uses: juicedata/slack-notify-action@main
+        with:
+          channel-id: "${{ secrets.SLACK_CHANNEL_ID_FOR_PR_CHECK_NOTIFY }}"
+          slack_bot_token: "${{ secrets.SLACK_BOT_TOKEN }}"
+
+      - name: Success
+        if: success()
+        run: echo "All Done"

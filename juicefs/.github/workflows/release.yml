@@ -1,0 +1,70 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  releaser:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 'oldstable'
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: setup release environment
+        run: |-
+          echo 'GITHUB_TOKEN=${{secrets.GH_PERSONAL_ACCESS_TOKEN}}' > .release-env
+
+      - name: goreleaser release
+        run: make release
+
+      - name: Cache local Maven repository
+        id: cache-maven
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Chown go module cache
+        run: sudo chown -R $USER $HOME/go/pkg/mod
+
+      - name: Build SDK
+        run: |
+          make -C sdk/java package-all && sudo chown -R $USER sdk/java/target
+          echo "JUICEFS_VERSION=$(mvn -f sdk/java/pom.xml help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+
+      - name: Upload SDK
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            sdk/java/target/juicefs-hadoop-${{ env.JUICEFS_VERSION }}.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish package
+        run: mvn -f sdk/java/pom.xml deploy -DskipTests
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
