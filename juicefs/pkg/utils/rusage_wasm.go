@@ -1,5 +1,5 @@
-//go:build!wasm
-// +build !wasm
+//go:build wasm && !windows
+// +build wasm,!windows
 
 /*
  * JuiceFS, Copyright 2021 Juicedata, Inc.
@@ -19,27 +19,25 @@
 
 package utils
 
-import "golang.org/x/sys/windows"
-
+// Rusage is a stub implementation for WASM environments
 type Rusage struct {
-	kernel windows.Filetime
-	user   windows.Filetime
+	// Empty implementation for WASM
 }
 
+// GetUtime returns the user time in seconds.
+// Since WASM doesn't support syscall.Getrusage, this always returns 0.
 func (ru *Rusage) GetUtime() float64 {
-	return float64((int64(ru.user.HighDateTime)<<32)+int64(ru.user.LowDateTime)) / 10 / 1e6
+	return 0.0
 }
 
+// GetStime returns the system time in seconds.
+// Since WASM doesn't support syscall.Getrusage, this always returns 0.
 func (ru *Rusage) GetStime() float64 {
-	return float64((int64(ru.kernel.HighDateTime)<<32)+int64(ru.kernel.LowDateTime)) / 10 / 1e6
+	return 0.0
 }
 
+// GetRusage returns CPU usage of current process.
+// Since WASM doesn't support syscall.Getrusage, this returns an empty Rusage struct.
 func GetRusage() *Rusage {
-	h := windows.CurrentProcess()
-	var creation, exit, kernel, user windows.Filetime
-	err := windows.GetProcessTimes(h, &creation, &exit, &kernel, &user)
-	if err == nil {
-		return &Rusage{kernel, user}
-	}
-	return nil
+	return &Rusage{}
 }

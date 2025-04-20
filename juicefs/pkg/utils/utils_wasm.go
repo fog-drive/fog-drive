@@ -1,6 +1,3 @@
-//go:build !wasm
-// +build !wasm
-
 /*
  * JuiceFS, Copyright 2021 Juicedata, Inc.
  *
@@ -20,40 +17,42 @@
 package utils
 
 import (
-	"os"
-	"os/exec"
 	"strconv"
 	"syscall"
-
-	"golang.org/x/sys/windows"
+	"time"
 )
 
 func GetFileInode(path string) (uint64, error) {
-	// FIXME support directory
-	fd, err := windows.Open(path, os.O_RDONLY, 0)
-	if err != nil {
-		return 0, err
+	// 在WebAssembly环境中不支持实际的inode
+	// 使用文件路径的哈希值作为替代
+	var h uint64 = 5381
+	for _, c := range path {
+		h = (h << 5) + h + uint64(c)
 	}
-	defer windows.Close(fd)
-	var data windows.ByHandleFileInformation
-	err = windows.GetFileInformationByHandle(fd, &data)
-	if err != nil {
-		return 0, err
-	}
-	return uint64(data.FileIndexHigh)<<32 + uint64(data.FileIndexLow), nil
+	return h, nil
 }
 
-func GetKernelVersion() (major, minor int) { return }
+func GetKernelVersion() (major, minor int) {
+	// WebAssembly环境中不适用内核版本
+	return 1, 0
+}
 
-func GetDev(fpath string) int { return -1 }
+func GetDev(fpath string) int {
+	// 在WebAssembly环境中不支持设备ID
+	return -1
+}
 
 func GetSysInfo() string {
-	sysInfo, _ := exec.Command("systeminfo").Output()
-	return string(sysInfo)
+	// 返回WebAssembly相关信息
+	return "Platform: WebAssembly/WASI\nTime: " + time.Now().String()
 }
 
-func GetUmask() int { return 0 }
+func GetUmask() int {
+	// WebAssembly环境中不支持umask
+	return 0
+}
 
 func ErrnoName(err syscall.Errno) string {
+	// 简单返回错误码的字符串表示
 	return strconv.Itoa(int(err))
 }

@@ -1,6 +1,3 @@
-//go:build !windows && !wasm
-// +build !windows, !wasm
-
 /*
  * JuiceFS, Copyright 2020 Juicedata, Inc.
  *
@@ -21,43 +18,29 @@ package chunk
 
 import (
 	"os"
-	"syscall"
+	"time"
 )
 
+func getAtime(fi os.FileInfo) time.Time {
+	// 在WebAssembly环境中，简单返回修改时间作为访问时间的替代
+	return fi.ModTime()
+}
+
 func getNlink(fi os.FileInfo) int {
-	if sst, ok := fi.Sys().(*syscall.Stat_t); ok {
-		return int(sst.Nlink)
-	}
 	return 1
 }
 
 func getDiskUsage(path string) (uint64, uint64, uint64, uint64) {
-	var stat syscall.Statfs_t
-	if err := syscall.Statfs(path, &stat); err == nil {
-		return stat.Blocks * uint64(stat.Bsize), stat.Bavail * uint64(stat.Bsize), stat.Files, stat.Ffree
-	} else {
-		logger.Warnf("statfs %s: %s", path, err)
-		return 1, 1, 1, 1
-	}
+	// 在WebAssembly环境中没有真正的磁盘，返回默认值
+	// 返回: 总空间, 可用空间, 保留空间, 可用inode (都设为1GB作为默认值)
+	const defaultSize uint64 = 1 << 30 // 1GB
+	return defaultSize, defaultSize, defaultSize, defaultSize
 }
 
 func changeMode(dir string, st os.FileInfo, mode os.FileMode) {
-	sst := st.Sys().(*syscall.Stat_t)
-	if os.Getuid() == int(sst.Uid) {
-		_ = os.Chmod(dir, mode)
-	}
+	// 在WebAssembly环境中不支持更改文件模式
 }
 
 func inRootVolume(dir string) bool {
-	dstat, err := os.Stat(dir)
-	if err != nil {
-		logger.Warnf("stat `%s`: %s", dir, err.Error())
-		return false
-	}
-	rstat, err := os.Stat("/")
-	if err != nil {
-		logger.Warnf("stat `/`: %s", err.Error())
-		return false
-	}
-	return dstat.Sys().(*syscall.Stat_t).Dev == rstat.Sys().(*syscall.Stat_t).Dev
+	return false
 }

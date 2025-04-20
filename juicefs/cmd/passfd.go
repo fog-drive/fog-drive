@@ -1,5 +1,5 @@
-//go:build !windows
-// +build !windows
+//go:build !windows && !wasm
+// +build !windows, !wasm
 
 /*
  * JuiceFS, Copyright 2024 Juicedata, Inc.

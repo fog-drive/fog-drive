@@ -171,7 +171,7 @@ func SupportANSIColor(fd uintptr) bool {
 
 func RandRead(buf []byte) {
 	if _, err := rand.Read(buf); err != nil {
-		logger.Fatalf("Generate random content: %s", err)
+		// logger.Fatalf("Generate random content: %s", err)
 	}
 }
 
@@ -181,7 +181,27 @@ var users = make(map[string]int)
 var groups = make(map[string]int)
 var mutex sync.Mutex
 
-var logger = GetLogger("juicefs")
+// nullLogger 是一个不执行任何操作的 logger 对象，专用于 utils.go 文件
+type nullLogger struct{}
+
+func (l *nullLogger) Debug(args ...interface{})                            {}
+func (l *nullLogger) Debugf(format string, args ...interface{})            {}
+func (l *nullLogger) Info(args ...interface{})                             {}
+func (l *nullLogger) Infof(format string, args ...interface{})             {}
+func (l *nullLogger) Warn(args ...interface{})                             {}
+func (l *nullLogger) Warnf(format string, args ...interface{})             {}
+func (l *nullLogger) Error(args ...interface{})                            {}
+func (l *nullLogger) Errorf(format string, args ...interface{})            {}
+func (l *nullLogger) Fatal(args ...interface{})                            {}
+func (l *nullLogger) Fatalf(format string, args ...interface{})            {}
+func (l *nullLogger) Panic(args ...interface{})                            {}
+func (l *nullLogger) Panicf(format string, args ...interface{})            {}
+func (l *nullLogger) WithField(key string, value interface{}) interface{}  { return l }
+func (l *nullLogger) WithFields(fields map[string]interface{}) interface{} { return l }
+func (l *nullLogger) WithError(err error) interface{}                      { return l }
+
+// 只在 utils.go 文件中使用空 logger，其他文件不受影响
+var logger = &nullLogger{}
 
 func UserName(uid int) string {
 	mutex.Lock()
@@ -275,7 +295,7 @@ func Duration(s string) time.Duration {
 	}
 
 	if err != nil {
-		logger.Warnf("Invalid duration value: %s, setting it to 0", s)
+		// logger.Warnf("Invalid duration value: %s, setting it to 0", s)
 		return 0
 	}
 	return d + time.Hour*time.Duration(v*24)

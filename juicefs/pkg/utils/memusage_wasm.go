@@ -1,5 +1,5 @@
-//go:build !windows && !wasm
-// +build !windows, !wasm
+//go:build wasm && !windows
+// +build wasm,!windows
 
 /*
  * JuiceFS, Copyright 2021 Juicedata, Inc.
@@ -19,28 +19,11 @@
 
 package utils
 
-import (
-	"bytes"
-	"os"
-	"strconv"
-	"syscall"
-)
-
+// MemoryUsage returns virtual and resident memory usage for WASM environment.
+// Since WASM doesn't support syscall.Getrusage or direct access to process stats,
+// this implementation returns 0 for both values.
 func MemoryUsage() (virt, rss uint64) {
-	stat, err := os.ReadFile("/proc/self/stat")
-	if err == nil {
-		stats := bytes.Split(stat, []byte(" "))
-		if len(stats) >= 24 {
-			v, _ := strconv.ParseUint(string(stats[22]), 10, 64)
-			r, _ := strconv.ParseUint(string(stats[23]), 10, 64)
-			return v, r * 4096
-		}
-	}
-
-	var ru syscall.Rusage
-	err = syscall.Getrusage(syscall.RUSAGE_SELF, &ru)
-	if err == nil {
-		return uint64(ru.Maxrss), uint64(ru.Maxrss)
-	}
-	return
+	// WASM environment doesn't support memory usage reporting via syscalls
+	// Return zeros as fallback
+	return 0, 0
 }

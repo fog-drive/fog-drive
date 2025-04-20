@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import * as ipcHandler from '@/lib/core'
+import { initJuicefs } from '@/base/juicefs'
 
 function createWindow(): void {
   // Create main window
@@ -78,6 +79,8 @@ app.on('window-all-closed', () => {
 const init = (): void => {
   try {
     ipcHandler.init()
+    // 初始化JuiceFS WebAssembly
+    initJuicefs()
   } catch (error) {
     console.error('Failed to initialize IPC handlers:', error)
   }

@@ -1,3 +1,6 @@
+//go:build !wasm
+// +build !wasm
+
 /*
  * JuiceFS, Copyright 2021 Juicedata, Inc.
  *
