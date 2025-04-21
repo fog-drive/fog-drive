@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  init()
+  await init()
   createWindow()
 
   app.on('activate', function () {
@@ -76,12 +76,7 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
-const init = (): void => {
-  try {
-    ipcHandler.init()
-    // 初始化JuiceFS WebAssembly
-    initJuicefs()
-  } catch (error) {
-    console.error('Failed to initialize IPC handlers:', error)
-  }
+const init = async (): Promise<void> => {
+  ipcHandler.init()
+  await initJuicefs()
 }

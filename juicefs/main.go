@@ -19,14 +19,23 @@ package main
 import (
 	"fmt"
 	"os"
+
+  "github.com/juicedata/juicefs/wasm"
 )
 
-// WASI环境中运行的主函数
+//go:wasmexport init
+func init() {
+  wasm.Format()
+}
+
+//go:wasmimport electron ten
+//go:noescape
+func ten() int32
+
+// 主函数，在 WebAssembly 环境中自动被调用
 func main() {
 	fmt.Println("Starting JuiceFS in WASI environment...")
-
-	// 在WASI环境中，我们无法直接设置JavaScript全局变量
-	// 而是需要通过stdout或其他I/O机制与宿主环境通信
+	fmt.Println("ten() = ", ten())
 	fmt.Println("JUICEFS_READY")
 
 	// 在实际应用中，这里会包含更多逻辑，如读取命令行参数等
