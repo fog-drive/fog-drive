@@ -20,18 +20,22 @@
 package meta
 
 import (
-	"github.com/mattn/go-sqlite3"
+	"errors"
+
+	"github.com/ncruces/go-sqlite3"
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 func isSQLiteDuplicateEntryErr(err error) bool {
-	if e, ok := err.(sqlite3.Error); ok {
-		return e.Code == sqlite3.ErrConstraint
+	if err == nil {
+		return false
 	}
-	return false
+	return errors.Is(err, sqlite3.CONSTRAINT)
 }
 
 func init() {
-	errBusy = sqlite3.ErrBusy
+	errBusy = sqlite3.BUSY
 	dupErrorCheckers = append(dupErrorCheckers, isSQLiteDuplicateEntryErr)
 	Register("sqlite3", newSQLMeta)
 }
