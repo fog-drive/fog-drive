@@ -8,6 +8,11 @@ An Electron application with React and TypeScript
 
 ## Project Setup
 
+### Clone Juicefs
+```bash
+$ git clone -b wasm --single-branch https://github.com/wanshicheng/juicefs.git
+```
+
 ### Install
 
 ```bash

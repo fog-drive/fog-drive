@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import * as ipcHandler from '@/lib/core'
 import { initJuicefs } from '@/base/juicefs'
+// import { isMainThread, Worker } from 'node:worker_threads'
 
 function createWindow(): void {
   // Create main window
@@ -77,6 +78,18 @@ app.on('window-all-closed', () => {
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
 const init = async (): Promise<void> => {
-  ipcHandler.init()
-  await initJuicefs()
+  // ipcHandler.init()
+  initJuicefs()
+  // if (isMainThread) {
+  //   const juicefsWorker = new Worker('./src/main/base/juicefs_proxy.js')
+  //   juicefsWorker.once('message', (message) => {
+  //     console.log('Message from worker:', message)
+  //   })
+  //   juicefsWorker.on('error', (error) => {
+  //     console.error('Worker error:', error)
+  //   })
+  //   juicefsWorker.on('exit', (code) => {
+  //     console.log(`Worker exited with code ${code}`)
+  //   })
+  // }
 }
