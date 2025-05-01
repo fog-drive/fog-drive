@@ -4,7 +4,7 @@ import './wasm_exec.js'
 
 // 为Node.js环境定义全局对象
 declare global {
-  function format(dbUrl: string): string
+  function format(dbUrl: string): void
   function goEchoString(input: string): string
 }
 
@@ -22,7 +22,6 @@ export async function initJuicefs(): Promise<void> {
 
     const wasmModule = await WebAssembly.instantiate(wasmBinary, go.importObject)
     go.run(wasmModule.instance)
-    goEchoString('Hello from Node.js!')
     format('sqlite://juicefs.db')
   } catch (instantiateError) {
     console.error('WASM instantiation error:', instantiateError)
