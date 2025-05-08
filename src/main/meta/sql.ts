@@ -23,7 +23,29 @@ export const newEngine = async (): Promise<DataSource> => {
     database: '../fd.db',
     synchronize: true,
     logging: true,
-    entities: [Setting, StorageEntity, Edge, Node, Slice]
+    entities: [
+      Setting,
+      StorageEntity,
+      Edge,
+      Node,
+      Slice,
+      Counter,
+      Chunk,
+      SliceRef,
+      Delslices,
+      Symlink,
+      Xattr,
+      Flock,
+      Plock,
+      Session,
+      Session2,
+      Sustained,
+      Delfile,
+      DirStats,
+      DirQuota,
+      DetachedNode,
+      Acl
+    ]
   }).initialize()
   return engine
 }
@@ -64,6 +86,15 @@ export class Setting {
   value!: string
 }
 
+@Entity('fd_counter')
+export class Counter {
+  @PrimaryColumn({ type: 'varchar', length: 255 })
+  name!: string
+
+  @Column({ type: 'bigint', nullable: false })
+  value!: number
+}
+
 @Entity('fd_edge')
 @Index(['parent', 'name'], { unique: true })
 export class Edge extends BaseEntity {
@@ -86,12 +117,285 @@ export class Edge extends BaseEntity {
 
 @Entity('fd_node')
 export class Node {
-  @PrimaryGeneratedColumn()
-  public inode!: number
+  @PrimaryColumn({ type: 'bigint', transformer: inoTransformer })
+  inode!: Inode
+
   @Column({ type: 'integer', nullable: false })
   type!: number
+
+  @Column({ type: 'integer', nullable: false })
+  flags!: number
+
+  @Column({ type: 'integer', nullable: false })
+  mode!: number
+
+  @Column({ type: 'integer', nullable: false })
+  uid!: number
+
+  @Column({ type: 'integer', nullable: false })
+  gid!: number
+
   @Column({ type: 'bigint', nullable: false })
-  parent!: number
+  atime!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  mtime!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  ctime!: number
+
+  @Column({ type: 'integer', nullable: false, default: 0 })
+  atimensec!: number
+
+  @Column({ type: 'integer', nullable: false, default: 0 })
+  mtimensec!: number
+
+  @Column({ type: 'integer', nullable: false, default: 0 })
+  ctimensec!: number
+
+  @Column({ type: 'integer', nullable: false })
+  nlink!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  length!: number
+
+  @Column({ type: 'integer', nullable: true })
+  rdev?: number
+
+  @Column({ type: 'bigint', nullable: true, transformer: inoTransformer })
+  parent?: Inode
+
+  @Column({ type: 'integer', nullable: true, name: 'access_acl_id' })
+  accessACLId?: number
+
+  @Column({ type: 'integer', nullable: true, name: 'default_acl_id' })
+  defaultACLId?: number
+}
+
+@Entity('fd_chunk')
+export class Chunk {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ type: 'bigint', nullable: false, transformer: inoTransformer })
+  @Index('IDX_fd_chunk_inode_indx', { unique: true })
+  inode!: Inode
+
+  @Column({ type: 'integer', nullable: false })
+  @Index('IDX_fd_chunk_inode_indx', { unique: true })
+  indx!: number
+
+  @Column({ type: 'blob', nullable: false })
+  slices!: Buffer
+}
+
+@Entity('fd_chunk_ref')
+export class SliceRef {
+  @PrimaryColumn({ type: 'bigint', name: 'chunkid' })
+  id!: number
+
+  @Column({ type: 'integer', nullable: false })
+  size!: number
+
+  @Column({ type: 'integer', nullable: false })
+  @Index('IDX_fd_chunk_ref_refs')
+  refs!: number
+}
+
+@Entity('fd_delslices')
+export class Delslices {
+  @PrimaryColumn({ type: 'bigint', name: 'chunkid' })
+  id!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  deleted!: number
+
+  @Column({ type: 'blob', nullable: false })
+  slices!: Buffer
+}
+
+@Entity('fd_symlink')
+export class Symlink {
+  @PrimaryColumn({ type: 'bigint', transformer: inoTransformer })
+  inode!: Inode
+
+  @Column({ type: 'blob', length: 4096, nullable: false })
+  target!: Buffer
+}
+
+@Entity('fd_xattr')
+export class Xattr {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ type: 'bigint', nullable: false, transformer: inoTransformer })
+  @Index('IDX_fd_xattr_inode_name', { unique: true })
+  inode!: Inode
+
+  @Column({ type: 'varchar', length: 255, nullable: false })
+  @Index('IDX_fd_xattr_inode_name', { unique: true })
+  name!: string
+
+  @Column({ type: 'blob', nullable: false })
+  value!: Buffer
+}
+
+@Entity('fd_flock')
+export class Flock {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ type: 'bigint', nullable: false, transformer: inoTransformer })
+  @Index('IDX_fd_flock_inode_sid_owner', { unique: true })
+  inode!: Inode
+
+  @Column({ type: 'bigint', nullable: false })
+  @Index('IDX_fd_flock_inode_sid_owner', { unique: true })
+  sid!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  @Index('IDX_fd_flock_inode_sid_owner', { unique: true })
+  owner!: number
+
+  @Column({ type: 'integer', nullable: false })
+  ltype!: number
+}
+
+@Entity('fd_plock')
+export class Plock {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ type: 'bigint', nullable: false, transformer: inoTransformer })
+  @Index('IDX_fd_plock_inode_sid_owner', { unique: true })
+  inode!: Inode
+
+  @Column({ type: 'bigint', nullable: false })
+  @Index('IDX_fd_plock_inode_sid_owner', { unique: true })
+  sid!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  @Index('IDX_fd_plock_inode_sid_owner', { unique: true })
+  owner!: number
+
+  @Column({ type: 'blob', nullable: false })
+  records!: Buffer
+}
+
+@Entity('fd_session')
+export class Session {
+  @PrimaryColumn({ type: 'bigint' })
+  sid!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  heartbeat!: number
+
+  @Column({ type: 'blob', nullable: true })
+  info?: Buffer
+}
+
+@Entity('fd_session2')
+export class Session2 {
+  @PrimaryColumn({ type: 'bigint' })
+  sid!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  expire!: number
+
+  @Column({ type: 'blob', nullable: false })
+  info!: Buffer
+}
+
+@Entity('fd_sustained')
+export class Sustained {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  @Index('IDX_fd_sustained_sid_inode', { unique: true })
+  sid!: number
+
+  @Column({ type: 'bigint', nullable: false, transformer: inoTransformer })
+  @Index('IDX_fd_sustained_sid_inode', { unique: true })
+  inode!: Inode
+}
+
+@Entity('fd_delfile')
+export class Delfile {
+  @PrimaryColumn({ type: 'bigint', transformer: inoTransformer })
+  inode!: Inode
+
+  @Column({ type: 'bigint', nullable: false })
+  length!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  expire!: number
+}
+
+@Entity('fd_dir_stats')
+export class DirStats {
+  @PrimaryColumn({ type: 'bigint', transformer: inoTransformer })
+  inode!: Inode
+
+  @Column({ type: 'bigint', nullable: false })
+  dataLength!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  usedSpace!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  usedInodes!: number
+}
+
+@Entity('fd_dir_quota')
+export class DirQuota {
+  @PrimaryColumn({ type: 'bigint', transformer: inoTransformer })
+  inode!: Inode
+
+  @Column({ type: 'bigint', nullable: false })
+  maxSpace!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  maxInodes!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  usedSpace!: number
+
+  @Column({ type: 'bigint', nullable: false })
+  usedInodes!: number
+}
+
+@Entity('fd_detached_node')
+export class DetachedNode {
+  @PrimaryColumn({ type: 'bigint', transformer: inoTransformer })
+  inode!: Inode
+
+  @Column({ type: 'bigint', nullable: false })
+  added!: number
+}
+
+@Entity('fd_acl')
+export class Acl {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ type: 'integer', nullable: false })
+  owner!: number
+
+  @Column({ type: 'integer', nullable: false })
+  group!: number
+
+  @Column({ type: 'integer', nullable: false })
+  mask!: number
+
+  @Column({ type: 'integer', nullable: false })
+  other!: number
+
+  @Column({ type: 'blob', nullable: false })
+  namedUsers!: Buffer
+
+  @Column({ type: 'blob', nullable: false })
+  namedGroups!: Buffer
 }
 
 @Entity('fd_slice')
@@ -112,154 +416,3 @@ export class Slice {
   blks!: Buffer
 }
 
-
-
-// export class Meta {
-//   appMetaEngine: DataSource
-//   setting: Map<string, string>
-//   constructor(appMetaEngine: DataSource, setting: Map<string, string>) {
-//     this.appMetaEngine = appMetaEngine
-//     this.setting = setting
-//   }
-
-//   // create(parent: number, name: string, ) {
-
-//   // }
-
-//   saveStorage(storageModel: StorageModel): void {
-//     const storageEntity = new StorageEntity()
-//     storageEntity.id = storageModel.id
-//     storageEntity.name = storageModel.name
-//     storageEntity.type = storageModel.type
-//     const { accessKey, secretKey, endpoint, region, bucket } = storageModel
-//     const values = JSON.stringify({ accessKey, secretKey, endpoint, region, bucket })
-//     storageEntity.values = values
-//     this.appMetaEngine
-//       .getRepository(StorageEntity)
-//       .upsert(storageEntity, { conflictPaths: ['id'], skipUpdateIfNoValuesChanged: true })
-//       .catch((error: Error) => {
-//         if (error instanceof QueryFailedError) {
-//           console.log(error.message)
-//         }
-//       })
-//   }
-
-//   async listStorage(): Promise<StorageModel[]> {
-//     const result = await this.appMetaEngine.getRepository(StorageEntity).find()
-//     return result.map((entity) => {
-//       let model: StorageModel | null = null
-//       if ('s3' === entity.type) {
-//         const values = JSON.parse(entity.values)
-//         model = {
-//           id: entity.id,
-//           name: entity.name,
-//           type: entity.type,
-//           accessKey: values.accessKey,
-//           secretKey: values.secretKey,
-//           endpoint: values.endpoint,
-//           region: values.region,
-//           bucket: values.bucket
-//         }
-//       }
-//       return model
-//     }) as StorageModel[]
-//   }
-
-//   async getStorage(id: number): Promise<StorageModel> {
-//     const result = await this.appMetaEngine
-//       .getRepository(StorageEntity)
-//       .findOne({ where: { id: id } })
-//     if (null === result) {
-//       throw 'The data does not exist.'
-//     }
-//     return entity2Model(result)
-//   }
-
-//   deleteStorage(id: number): void {
-//     this.appMetaEngine.getRepository(StorageEntity).delete(id)
-//   }
-// }
-
-// export async function newMeta(): Promise<Meta> {
-//   const ds = await new DataSource({
-//     type: 'sqlite',
-//     database: '../fd.db',
-//     logging: true,
-//     synchronize: true,
-//     entities: [Setting, StorageEntity, Edge]
-//   }).initialize()
-//   const settings = await ds.getRepository(Setting).find()
-//   const setting = new Map(_.map(settings, (item) => [item.key, item.value]))
-//   console.log(setting)
-//   return new Meta(ds, setting)
-// }
-
-// @Entity('fd_storage')
-// export class StorageEntity {
-//   @PrimaryGeneratedColumn()
-//   id: number
-
-//   @Column({ type: 'varchar', length: 255, unique: true })
-//   name: string
-
-//   @Column({ type: 'varchar', length: 255 })
-//   type: string
-
-//   @Column({ type: 'int8', nullable: true })
-//   quota: number
-
-//   @Column({ type: 'varchar', length: 4096 })
-//   values: string
-// }
-
-// @Entity('fd_setting')
-// export class Setting {
-//   @PrimaryColumn({ type: 'varchar', length: 255 })
-//   key: string
-
-//   @Column({ type: 'varchar', length: 4096 })
-//   value: string
-// }
-
-// @Entity('fd_edge')
-// @Index(['parent', 'name'], { unique: true })
-// export class Edge {
-//   @PrimaryGeneratedColumn()
-//   id: number
-
-//   @Column({ type: 'bigint', nullable: false })
-//   parent: number
-
-//   @Column({ type: 'blob', length: 255, nullable: false })
-//   name: Buffer
-
-//   @Column({ type: 'bigint', nullable: false })
-//   @Index('IDX_fd_edge_inode')
-//   inode: number
-
-//   @Column({ type: 'integer', nullable: false })
-//   type: number
-// }
-
-// @Entity('fd_node')
-// export class Node {
-//   inode: number
-// }
-
-// function entity2Model(entity: StorageEntity): StorageModel {
-//   const values = JSON.parse(entity.values)
-//   if ('s3' === entity.type) {
-//     return {
-//       id: entity.id,
-//       type: entity.type,
-//       name: entity.name,
-//       endpoint: values.endpoint,
-//       region: values.region,
-//       accessKey: values.accessKey,
-//       secretKey: values.secretKey,
-//       bucket: values.bucket
-//     }
-//   } else {
-//     throw 'This type is not supported.'
-//   }
-// }
