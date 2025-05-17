@@ -3,7 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import * as ipcHandler from '@/lib/core'
-import { initJuicefs } from '@/base/juicefs'
+import { initJuicefs } from '@/bridge/juicefs'
 // import { isMainThread, Worker } from 'node:worker_threads'
 
 function createWindow(): void {

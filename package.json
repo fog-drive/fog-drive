@@ -13,7 +13,7 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
-    "build:go": "cd juicefs && cross-env GOOS=js GOARCH=wasm go build -tags \"nogateway,noazure,nobadger,nofuse,nos3,nocs,nooss,nohdfs,noibmcos,nogcs,nobos,nocos,nodragonfly,noscs,nosqlite,nonfs,noobs,nogs,nosftp,nowebdav,nodb,notikv,noetcd,nomysql,nopg,noredis\" -o ../resources/juicefs.wasm .",
+    "build:go": "cd juicefs && cross-env GOOS=js GOARCH=wasm go build -tags \"nogateway,noazure,nobadger,nob2,nofuse,nos3,nocs,nooss,nohdfs,noibmcos,nogcs,nobos,nocos,nodragonfly,noscs,nosqlite,nonfs,noobs,nogs,nosftp,noufile,nowebdav,nodb,notikv,noetcd,nomysql,nopg,noredis,noupyun,tos\" -o ../resources/juicefs.wasm .",
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",

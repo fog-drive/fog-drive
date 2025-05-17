@@ -11,7 +11,7 @@ export default defineConfig({
         '@/lib': resolve('src/main/lib'),
         '@/fs': resolve('src/main/fs'),
         '@/meta': resolve('src/main/meta'),
-        '@/base': resolve('src/main/base'),
+        '@/bridge': resolve('src/main/bridge'),
         '@shared': resolve('src/shared')
       }
     }
