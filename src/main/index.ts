@@ -3,8 +3,6 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import * as ipcHandler from '@/lib/core'
-import { initJuicefs } from '@/bridge/juicefs'
-// import { isMainThread, Worker } from 'node:worker_threads'
 
 function createWindow(): void {
   // Create main window
@@ -79,7 +77,6 @@ app.on('window-all-closed', () => {
 // code. You can also put them in separate files and require them here.
 const init = async (): Promise<void> => {
   // ipcHandler.init()
-  initJuicefs()
   // if (isMainThread) {
   //   const juicefsWorker = new Worker('./src/main/base/juicefs_proxy.js')
   //   juicefsWorker.once('message', (message) => {

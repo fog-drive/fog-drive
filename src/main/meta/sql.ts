@@ -419,98 +419,101 @@ export class Slice {
 
 export async function doLoad(): Promise<string> {
   try {
-    const dataSource = await newEngine();
-    const dbMeta = new DbMeta(dataSource);
+    const dataSource = await newEngine()
+    const dbMeta = new DbMeta(dataSource)
 
     // 尝试获取format设置项
-    const formatValue = await dbMeta.getSetting('format');
-    return formatValue || 'ok';
+    const formatValue = await dbMeta.getSetting('format')
+    return formatValue || 'ok'
   } catch (error) {
-    console.error('Failed to load database metadata:', error);
-    return 'error';
+    console.error('Failed to load database metadata:', error)
+    return 'error'
   }
 }
 
+export function doInit(format: string, force: boolean): void {
+  console.log(format)
+}
 
 export class DbMeta {
-  private dataSource: DataSource;
-  private noReadOnlyTxn: boolean = false;
+  private dataSource: DataSource
+  private noReadOnlyTxn: boolean = false
 
   constructor(dataSource: DataSource) {
-    this.dataSource = dataSource;
+    this.dataSource = dataSource
   }
 
-  private shouldRetry(err: any): boolean {
+  private shouldRetry(err: Error): boolean {
     if (!err || !err.message) {
-      return false;
+      return false
     }
 
-    const msg = err.message.toLowerCase();
+    const msg = err.message.toLowerCase()
 
     // 检查是否是"太多连接"或"太多客户端"等错误
     if (msg.includes('too many connections') || msg.includes('too many clients')) {
-      return true;
+      return true
     }
 
     // 检查特定数据库的锁定错误
-    if (msg.includes('database is locked') ||
-        msg.includes('deadlock') ||
-        msg.includes('lock wait timeout') ||
-        msg.includes('serialization failure')) {
-      return true;
+    if (
+      msg.includes('database is locked') ||
+      msg.includes('deadlock') ||
+      msg.includes('lock wait timeout') ||
+      msg.includes('serialization failure')
+    ) {
+      return true
     }
 
-    return false;
+    return false
   }
 
-
-
   async roTxn<T>(f: (entityManager: EntityManager) => Promise<T>): Promise<T> {
-    const start = Date.now();
-    const maxRetries = 50;
-    let lastError: any = null;
+    const start = Date.now()
+    const maxRetries = 50
+    let lastError: Error | null = null
 
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const queryRunner = this.dataSource.createQueryRunner();
-        await queryRunner.connect();
+        const queryRunner = this.dataSource.createQueryRunner()
+        await queryRunner.connect()
         if (!this.noReadOnlyTxn) {
-          await queryRunner.startTransaction("REPEATABLE READ");
-          queryRunner.query('SET TRANSACTION READ ONLY');
-
+          await queryRunner.startTransaction('REPEATABLE READ')
+          queryRunner.query('SET TRANSACTION READ ONLY')
         } else {
-          await queryRunner.startTransaction();
+          await queryRunner.startTransaction()
         }
 
         try {
-          const result = await f(queryRunner.manager);
+          const result = await f(queryRunner.manager)
 
-          await queryRunner.commitTransaction();
-          const duration = Date.now() - start;
-          if (duration > 100) { // 只记录较慢的事务，阈值可调整
-            console.log(`roTxn completed in ${duration}ms`);
+          await queryRunner.commitTransaction()
+          const duration = Date.now() - start
+          if (duration > 100) {
+            console.log(`roTxn completed in ${duration}ms`)
           }
-
-          return result;
+          return result
         } catch (err) {
-          await queryRunner.rollbackTransaction();
-          throw err;
+          await queryRunner.rollbackTransaction()
+          throw err
         } finally {
-          await queryRunner.release();
+          await queryRunner.release()
         }
-      } catch (err) {
-        lastError = err;
-        if (!this.shouldRetry(err)) {
-          break;
+      } catch (err: unknown) {
+        lastError = err as Error
+        if (!this.shouldRetry(err as Error)) {
+          break
         }
-
-        const backoff = Math.min(100 * Math.pow(2, i), 1000);
-        console.warn(`Transaction error (attempt ${i+1}/${maxRetries}), retrying in ${backoff}ms:`, err);
-        await new Promise(resolve => setTimeout(resolve, backoff));
+        const backoff = Math.min(100 * Math.pow(2, i), 1000)
+        console.warn(
+          `Transaction error (attempt ${i + 1}/${maxRetries}), retrying in ${backoff}ms:`,
+          err
+        )
+        await new Promise((resolve) => setTimeout(resolve, backoff))
       }
     }
-    console.error(`Already tried ${maxRetries} times, returning error:`, lastError);
-    throw lastError;
+    console.error(`Already tried ${maxRetries} times, returning error:`, lastError)
+    throw lastError
   }
 
   async getSetting(name: string): Promise<string | null> {
@@ -518,13 +521,13 @@ export class DbMeta {
       return await this.roTxn(async (manager: EntityManager) => {
         const setting = await manager.findOneBy(Setting, {
           key: name
-        });
+        })
 
-        return setting ? setting.value : null;
-      });
+        return setting ? setting.value : null
+      })
     } catch (error) {
-      console.error(`Failed to get setting ${name}:`, error);
-      throw error;
+      console.error(`Failed to get setting ${name}:`, error)
+      throw error
     }
   }
 }
