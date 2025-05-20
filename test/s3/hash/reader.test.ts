@@ -44,10 +44,6 @@ function mustReader(
   return Reader.newReader(src, size, md5Hex, sha256Hex, actualSize)
 }
 
-test('test', () => {
-  fs.createReadStream('test/s3/hash/reader.test.ts')
-})
-
 describe('Tests functions like Size(), MD5(), SHA256()', () => {
   test('TestHashReaderHelperMethods', async () => {
     const content = 'abcd'
