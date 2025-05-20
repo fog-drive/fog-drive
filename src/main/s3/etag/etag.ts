@@ -17,6 +17,10 @@ export class ETag {
     this.data = data
   }
 
+  public getData(): Buffer {
+    return this.data
+  }
+
   // String returns the string representation of the ETag.
   //
   // The returned string is a hex representation of the

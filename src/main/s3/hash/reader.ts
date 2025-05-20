@@ -15,7 +15,7 @@ export class Reader extends Readable {
   private bytesRead: number = 0
   private _size: number
   private _actualSize: number
-  private checksum: Buffer
+  private checksum: ETag
   private contentSHA256: Buffer
   private _sha256: crypto.Hash | null
 
@@ -25,7 +25,7 @@ export class Reader extends Readable {
   protected constructor(
     src: Readable,
     size: number,
-    checksum: Buffer,
+    checksum: ETag,
     contentSHA256: Buffer,
     actualSize: number = -1,
     sha256: crypto.Hash | null = null
@@ -72,49 +72,52 @@ export class Reader extends Readable {
     }
 
     let SHA256: Buffer = Buffer.alloc(0)
-    if (sha256Hex) {
-      try {
-        SHA256 = Buffer.from(sha256Hex, 'hex')
-      } catch (err) {
-        throw new SHA256Mismatch(sha256Hex, '') // TODO(aead): Return an error that indicates that an invalid Content-SHA256 has been specified
-      }
+    try {
+      SHA256 = Buffer.from(sha256Hex, 'hex')
+    } catch (err) {
+      throw new SHA256Mismatch(sha256Hex, '') // TODO(aead): Return an error that indicates that an invalid Content-SHA256 has been specified
     }
 
     // Merge the size, MD5 and SHA256 values if src is a Reader.
     // The size may be set to -1 by callers if unknown.
     if (src instanceof Reader) {
-      if (src.bytesRead > 0) {
+      const r = src as Reader
+      if (r.bytesRead > 0) {
         throw new Error('hash: already read from hash reader')
       }
 
-      if (src.checksum.length !== 0 && MD5.length !== 0 && !Reader.bufferEqual(src.checksum, MD5)) {
-        throw new BadDigest(src.checksum.toString('hex'), md5Hex)
+      if (
+        r.checksum.getData.length !== 0 &&
+        MD5.length !== 0 &&
+        !ETag.equal(r.checksum, new ETag(MD5))
+      ) {
+        throw new BadDigest(r.checksum.getData().toString('hex'), md5Hex)
       }
 
       if (
-        src.contentSHA256.length !== 0 &&
+        r.contentSHA256.length !== 0 &&
         SHA256.length !== 0 &&
-        !Reader.bufferEqual(src.contentSHA256, SHA256)
+        !(Buffer.compare(r.contentSHA256, SHA256) === 0)
       ) {
-        throw new SHA256Mismatch(src.contentSHA256.toString('hex'), sha256Hex)
+        throw new SHA256Mismatch(r.contentSHA256.toString('hex'), sha256Hex)
       }
 
-      if (src._size >= 0 && size >= 0 && src._size !== size) {
-        throw new ErrSizeMismatch(src._size, size)
+      if (r._size >= 0 && size >= 0 && r._size !== size) {
+        throw new ErrSizeMismatch(r._size, size)
       }
 
-      src.checksum = MD5
-      src.contentSHA256 = SHA256
+      r.checksum = new ETag(MD5)
+      r.contentSHA256 = SHA256
 
-      if (src._size < 0 && size >= 0) {
-        src._size = size
+      if (r._size < 0 && size >= 0) {
+        r._size = size
       }
 
-      if (src._actualSize <= 0 && actualSize >= 0) {
-        src._actualSize = actualSize
+      if (r._actualSize <= 0 && actualSize >= 0) {
+        r._actualSize = actualSize
       }
 
-      return src
+      return r
     }
 
     // For non-Reader type src, create a new Reader
@@ -122,14 +125,8 @@ export class Reader extends Readable {
     if (SHA256.length !== 0) {
       hash = crypto.createHash('sha256')
     }
-
-    return new Reader(src, size, MD5, SHA256, actualSize, hash)
-  }
-
-  // Helper method for comparing two Buffers
-  private static bufferEqual(a: Buffer, b: Buffer): boolean {
-    if (a.length !== b.length) return false
-    return crypto.timingSafeEqual(a, b)
+  
+    return new Reader(src, size, new ETag(MD5), SHA256, actualSize, hash)
   }
 
   /**
@@ -159,7 +156,7 @@ export class Reader extends Readable {
       // Verify SHA256 if set
       if (this._sha256 && this.contentSHA256.length > 0) {
         const sum = this._sha256.digest()
-        if (!Reader.bufferEqual(this.contentSHA256, sum)) {
+        if (!(Buffer.compare(this.contentSHA256, sum) === 0)) {
           this.emit(
             'error',
             new SHA256Mismatch(this.contentSHA256.toString('hex'), sum.toString('hex'))
@@ -177,7 +174,7 @@ export class Reader extends Readable {
   }
 
   // Override Readable's _read method
-  _read(size: number): void {
+  _read(/* size */): void {
     // Implementation is done through event handlers,
     // no additional operation needed here
     if (this.src.isPaused()) {
@@ -209,8 +206,8 @@ export class Reader extends Readable {
    */
   eTag(): ETag | null {
     // If the source implements ETag support, get the ETag
-    if (this.checksum.length > 0) {
-      return new ETag(this.checksum)
+    if (this.checksum.getData().length > 0) {
+      return new ETag(this.checksum.getData())
     }
     return null
   }
@@ -223,7 +220,7 @@ export class Reader extends Readable {
    * Therefore, refer to MD5Current.
    */
   md5(): Buffer {
-    return this.checksum
+    return this.checksum.getData()
   }
 
   /**
@@ -238,7 +235,7 @@ export class Reader extends Readable {
     if (etag) {
       return Buffer.from(etag.string(), 'hex')
     }
-    return this.checksum
+    return this.checksum.getData()
   }
 
   /**
@@ -255,14 +252,14 @@ export class Reader extends Readable {
    * MD5HexString returns a hex representation of the MD5.
    */
   md5HexString(): string {
-    return this.checksum.toString('hex')
+    return this.checksum.getData().toString('hex')
   }
 
   /**
    * MD5Base64String returns a base64 representation of the MD5.
    */
   md5Base64String(): string {
-    return this.checksum.toString('base64')
+    return this.checksum.getData().toString('base64')
   }
 
   /**

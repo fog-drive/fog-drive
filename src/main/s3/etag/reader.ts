@@ -8,12 +8,22 @@ export interface Tagger {
 }
 
 // WrapReader represents a wrapped reader that implements the Tagger interface
-export class WrapReader implements Tagger {
+export class WrapReader extends Readable implements Tagger {
   private tagger: Tagger | null
 
-  constructor(reader: Readable, tagger: Tagger | null) {
-    this.tagger = tagger
-    // reader is stored but not used directly in this class
+  constructor(wrapped: Readable, content: Readable | null) {
+    super()
+    this.tagger = null
+
+    // Set up data forwarding from wrapped stream
+    wrapped.on('data', (chunk) => this.push(chunk))
+    wrapped.on('end', () => this.push(null))
+    wrapped.on('error', (err) => this.emit('error', err))
+
+    // Check if content implements Tagger interface
+    if (content !== null && 'eTag' in content && typeof content.eTag === 'function') {
+      this.tagger = content as Tagger
+    }
   }
 
   // eTag returns the ETag of the underlying Tagger.
@@ -47,15 +57,10 @@ export class WrapReader implements Tagger {
 //   reader = wrap(encryptedContent, content);
 //
 export function wrap(wrapped: Readable, content: Readable): Readable & Tagger {
-  const reader = wrapped as Readable & Tagger
-
   if ('eTag' in content && typeof content.eTag === 'function') {
-    reader.eTag = (): ETag => (content as unknown as Tagger).eTag()
-  } else {
-    reader.eTag = (): ETag => null
+    return new WrapReader(wrapped, content)
   }
-
-  return reader
+  return new WrapReader(wrapped, null)
 }
 
 // VerifyError is an error signaling that a
@@ -65,7 +70,7 @@ export class VerifyError extends Error {
   computed: ETag
 
   constructor(expected: ETag, computed: ETag) {
-    const message = `etag: expected ETag "${expected?.toString('hex')}" does not match computed ETag "${computed?.toString('hex')}"`
+    const message = `etag: expected ETag "${expected?.string()}" does not match computed ETag "${computed?.string()}"`
     super(message)
     this.name = 'VerifyError'
     this.expected = expected
@@ -87,7 +92,6 @@ export class Reader extends Readable implements Tagger {
   private checksum!: ETag
   private readN!: number
   private src!: Readable
-  private ended: boolean = false
 
   constructor(src: Readable, etag: ETag) {
     super()
@@ -121,7 +125,6 @@ export class Reader extends Readable implements Tagger {
           this.emit('error', new VerifyError(this.checksum, etag))
         }
       }
-      this.ended = true
       this.push(null) // signal end of data
     })
 

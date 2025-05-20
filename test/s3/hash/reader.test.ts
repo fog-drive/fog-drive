@@ -1,5 +1,4 @@
 import { test, expect, describe } from 'vitest'
-import * as fs from 'fs'
 import { Readable } from 'stream'
 import { Reader } from '@main/s3/hash/reader'
 import { BadDigest, SHA256Mismatch, ErrSizeMismatch } from '@main/s3/hash/errors'
