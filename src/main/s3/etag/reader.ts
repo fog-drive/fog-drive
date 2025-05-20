@@ -25,14 +25,6 @@ export class WrapReader implements Tagger {
   }
 }
 
-// equal returns true if two ETags are equal
-export function equal(a: ETag, b: ETag): boolean {
-  if (a === null || b === null) {
-    return a === b
-  }
-  return Buffer.compare(a, b) === 0
-}
-
 // wrap returns a ReadableStream that reads from the wrapped
 // ReadableStream and implements the Tagger interface.
 //
@@ -103,7 +95,7 @@ export class Reader extends Readable implements Tagger {
     // If input is already a Reader, try to reuse it
     if (src instanceof Reader) {
       const er = src as Reader
-      if (er.readN === 0 && equal(etag, er.checksum)) {
+      if (er.readN === 0 && ETag.equal(etag, er.checksum)) {
         return er
       }
     }
@@ -125,7 +117,7 @@ export class Reader extends Readable implements Tagger {
       // Verify checksum when stream ends
       if (this.checksum !== null) {
         const etag = this.eTag()
-        if (!equal(etag, this.checksum)) {
+        if (!ETag.equal(etag, this.checksum)) {
           this.emit('error', new VerifyError(this.checksum, etag))
         }
       }
@@ -145,7 +137,7 @@ export class Reader extends Readable implements Tagger {
   // times may return different results.
   eTag(): ETag {
     const sum = Buffer.from(this.md5.copy().digest())
-    return sum
+    return new ETag(sum)
   }
 
   // newReader creates a new Reader - static factory method for easier usage
