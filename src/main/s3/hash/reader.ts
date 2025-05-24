@@ -62,19 +62,13 @@ export class Reader extends Readable {
     sha256Hex: string,
     actualSize: number = -1
   ): Reader {
-    let MD5: Buffer = Buffer.alloc(0)
-    if (md5Hex) {
-      try {
-        MD5 = Buffer.from(md5Hex, 'hex')
-      } catch (err) {
-        throw new BadDigest(md5Hex, '') // TODO(aead): Return an error that indicates that an invalid ETag has been specified
-      }
+    const md5 = Buffer.from(md5Hex, 'hex')
+    if (md5Hex !== md5.toString('hex')) {
+      throw new BadDigest(md5Hex, '') // TODO(aead): Return an error that indicates that an invalid ETag has been specified
     }
 
-    let SHA256: Buffer = Buffer.alloc(0)
-    try {
-      SHA256 = Buffer.from(sha256Hex, 'hex')
-    } catch (err) {
+    const sha256 = Buffer.from(sha256Hex, 'hex')
+    if (sha256Hex !== sha256.toString('hex')) {
       throw new SHA256Mismatch(sha256Hex, '') // TODO(aead): Return an error that indicates that an invalid Content-SHA256 has been specified
     }
 
@@ -88,16 +82,16 @@ export class Reader extends Readable {
 
       if (
         r.checksum.getData.length !== 0 &&
-        MD5.length !== 0 &&
-        !ETag.equal(r.checksum, new ETag(MD5))
+        md5.length !== 0 &&
+        !ETag.equal(r.checksum, new ETag(md5))
       ) {
         throw new BadDigest(r.checksum.getData().toString('hex'), md5Hex)
       }
 
       if (
         r.contentSHA256.length !== 0 &&
-        SHA256.length !== 0 &&
-        !(Buffer.compare(r.contentSHA256, SHA256) === 0)
+        sha256.length !== 0 &&
+        !(Buffer.compare(r.contentSHA256, sha256) === 0)
       ) {
         throw new SHA256Mismatch(r.contentSHA256.toString('hex'), sha256Hex)
       }
@@ -106,8 +100,8 @@ export class Reader extends Readable {
         throw new ErrSizeMismatch(r._size, size)
       }
 
-      r.checksum = new ETag(MD5)
-      r.contentSHA256 = SHA256
+      r.checksum = new ETag(md5)
+      r.contentSHA256 = sha256
 
       if (r._size < 0 && size >= 0) {
         r._size = size
@@ -122,11 +116,11 @@ export class Reader extends Readable {
 
     // For non-Reader type src, create a new Reader
     let hash: crypto.Hash | null = null
-    if (SHA256.length !== 0) {
+    if (sha256.length !== 0) {
       hash = crypto.createHash('sha256')
     }
-  
-    return new Reader(src, size, new ETag(MD5), SHA256, actualSize, hash)
+
+    return new Reader(src, size, new ETag(md5), sha256, actualSize, hash)
   }
 
   /**
